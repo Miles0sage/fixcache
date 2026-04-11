@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lore-memory"
+version = "0.2.0"
+description = "Memory that learns from forgetting. A 1-dependency Python library that gives any LLM persistent memory with auto-evolving knowledge graphs, temporal reasoning, and fleet-wide failure learning."
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    {name = "Miles Sage"},
+]
+readme = "README.md"
+keywords = ["ai", "memory", "mcp", "claude", "agent", "llm", "sqlite", "knowledge-graph", "rag"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Environment :: Console",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Miles0sage/lore-memory"
+Repository = "https://github.com/Miles0sage/lore-memory"
+Issues = "https://github.com/Miles0sage/lore-memory/issues"
+Changelog = "https://github.com/Miles0sage/lore-memory/releases"
+
+[project.optional-dependencies]
+neural = [
+    "onnxruntime>=1.17",
+]
+gemma = [
+    "llama-cpp-python>=0.2",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[project.scripts]
+lore-memory = "lore_memory.cli:main"
+lore-memory-mcp = "lore_memory.mcp.server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lore_memory*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["lore_memory"]
+omit = ["tests/*"]
