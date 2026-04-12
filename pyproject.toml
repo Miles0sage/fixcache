@@ -61,6 +61,9 @@ include = ["lore_memory*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+markers = [
+    "security: security hardening tests (SQL injection, ReDoS, privacy, YAML RCE)",
+]
 
 [tool.coverage.run]
 source = ["lore_memory"]

@@ -39,6 +39,17 @@ class WatchResult:
     fingerprint_hash: str | None
     suggestions: list[dict[str, Any]] = field(default_factory=list)
 
+    def to_json(self) -> str:
+        """Serialize to a JSON string. Needed for hook/CI integration.
+
+        Equivalent to ``json.dumps(self.to_dict())``. Caught by
+        ``tests/test_property_fuzz.py::test_watch_result_json_serializable``
+        in v0.4.0 as a missing API — added here as part of the
+        pre-release hardening pass.
+        """
+        import json as _json
+        return _json.dumps(self.to_dict())
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "exit_code": self.exit_code,
@@ -82,6 +93,8 @@ def run_command(
         stdout=None,          # inherit parent stdout — user sees it live
         stderr=subprocess.PIPE,
         text=True,
+        encoding="utf-8",
+        errors="replace",     # real-world stderr carries latin-1/cp1252/binary; never crash
         bufsize=1,            # line-buffered so errors surface immediately
     )
     buf: list[str] = []

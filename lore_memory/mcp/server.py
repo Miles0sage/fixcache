@@ -845,7 +845,35 @@ TOOLS: dict[str, dict] = {
 
 # ── JSON-RPC request handler ──────────────────────────────────────────────────
 
-def handle_request(request: dict) -> dict | None:
+def handle_request(request) -> dict | None:
+    """JSON-RPC 2.0 compliant entry point.
+
+    Landed in v0.4.0 after the protocol-fuzz suite found two spec violations:
+    (1) non-dict (batch array / list / null) requests crashed with
+        AttributeError on ``.get()`` and were silently swallowed, hanging
+        the client indefinitely;
+    (2) notifications (requests without an ``id``) wrongly received
+        responses instead of being silent per JSON-RPC 2.0 §5.
+
+    This wrapper enforces both rules before delegating to the legacy
+    dispatcher below.
+    """
+    if not isinstance(request, dict):
+        return {
+            "jsonrpc": "2.0",
+            "id": None,
+            "error": {
+                "code": -32600,
+                "message": "Invalid Request: must be a JSON object",
+            },
+        }
+    response = _handle_request_unsafe(request)
+    if "id" not in request:
+        return None  # notification — no response per JSON-RPC 2.0 §5
+    return response
+
+
+def _handle_request_unsafe(request: dict) -> dict | None:
     method = request.get("method", "")
     params = request.get("params") or {}
     req_id = request.get("id")

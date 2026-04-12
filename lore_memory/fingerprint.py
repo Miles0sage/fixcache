@@ -112,15 +112,41 @@ _TARGETED_REDACTORS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"unused import: `[^`]+`"), "unused import: `<name>`"),
     (re.compile(r"cannot find `\w+` in this scope"), "cannot find `<name>` in this scope"),
     # ── Shell ───────────────────────────────────────────────────────────────
-    (re.compile(r"\S+: command not found"), "<cmd>: command not found"),
+    # NOTE: \S{1,200} is bounded — the bare `\S+` variant took 195ms on
+    # a 10k-char adversarial input (catastrophic backtracking landed in
+    # the security hardening suite). Release blocker if attacker-controlled.
+    (re.compile(r"\S{1,200}: command not found"), "<cmd>: command not found"),
     # ── Filesystem ──────────────────────────────────────────────────────────
-    (re.compile(r"\S+: No such file or directory"), "<path>: No such file or directory"),
+    (re.compile(r"\S{1,200}: No such file or directory"), "<path>: No such file or directory"),
+    # ── Secrets & tokens ────────────────────────────────────────────────────
+    # Redact common API-key shapes even when they appear unquoted in the
+    # wild. Runs before the generic _QUOTED redactor so that bare tokens
+    # like `token=ghp_...` or `Authorization: Bearer sk-...` never reach
+    # the fingerprint essence or the Darwin export corpus.
+    (re.compile(r"ghp_[A-Za-z0-9]{20,}"), "<github_token>"),
+    (re.compile(r"gho_[A-Za-z0-9]{20,}"), "<github_token>"),
+    (re.compile(r"ghs_[A-Za-z0-9]{20,}"), "<github_token>"),
+    (re.compile(r"ghu_[A-Za-z0-9]{20,}"), "<github_token>"),
+    (re.compile(r"github_pat_[A-Za-z0-9_]{20,}"), "<github_token>"),
+    (re.compile(r"AIza[A-Za-z0-9_-]{20,}"), "<google_api_key>"),
+    (re.compile(r"sk-[A-Za-z0-9]{20,}"), "<openai_key>"),
+    (re.compile(r"xoxb-[A-Za-z0-9-]{20,}"), "<slack_bot_token>"),
+    (re.compile(r"xoxp-[A-Za-z0-9-]{20,}"), "<slack_user_token>"),
+    (re.compile(r"glpat-[A-Za-z0-9_-]{20,}"), "<gitlab_token>"),
+    (re.compile(r"AKIA[A-Z0-9]{16}"), "<aws_access_key>"),
+    (re.compile(r"(?<![@\w])[\w.+-]+@[\w-]+\.[\w.-]+"), "<email>"),
     # ── Relative paths (./foo.go, ./src/main.rs, ./foo.go:12:9) ────────────
     (re.compile(r"\./[\w./-]+\.[a-z]+(?::\d+)?(?::\d+)?"), "./<file>"),
 ]
 
 # Strip file paths: /any/abs/path/foo.py → foo.py
-_ABS_PATH = re.compile(r"(?:/[^\s:'\"`]+/)+([^/\s:'\"`]+)")
+# Factored to avoid the catastrophic backtracking that the 22-second
+# hardening test caught on a 50k-segment path: segments now exclude `/`,
+# and the trailing `/` is matched once after the inner `+` group rather
+# than as part of each iteration. This makes each iteration consume a
+# unique `/<segment>` pair — linear time, no nested-quantifier hazard —
+# while still collapsing `/abs/path/secret.py` to `<p>/secret.py`.
+_ABS_PATH = re.compile(r"(?:/[^\s:/'\"`]+){1,20}/([^/\s:'\"`]+)")
 # Strip line/column numbers: file.py:42:8 → file.py:<L>:<C>
 _LINE_COL = re.compile(r"(\.[a-z]+):(\d+)(:(\d+))?")
 # Strip hex-looking IDs (UUIDs, hashes, pointer addresses like 0xdeadbeef).
@@ -128,8 +154,23 @@ _LINE_COL = re.compile(r"(\.[a-z]+):(\d+)(:(\d+))?")
 _HEX_ID = re.compile(r"(?:0x[0-9a-f]+|\b[0-9a-f]{8,}\b)", re.IGNORECASE)
 # Strip specific numeric values that are usually noise
 _NUMBER = re.compile(r"\b\d{3,}\b")
-# Strip quoted literals (often contain secrets or user-specific values)
-_QUOTED = re.compile(r"(['\"])([^'\"]{8,})\1")
+# Strip quoted literals (often contain secrets or user-specific values).
+# Two separate patterns — one for single-quoted, one for double-quoted —
+# because a single combined pattern of the form (['"])([^'"]{8,})\1 refuses
+# to match a value that contains the *other* kind of quote. Real-world
+# Python tracebacks commonly carry apostrophes inside strings (`can't`,
+# `doesn't`, object repr strings), which made the combined pattern leak
+# secrets like 'it\'s_a_secret'. Property-based fuzz tests surfaced this
+# as a privacy regression; fix landed as part of v0.4.0 hardening.
+# `<`/`>` are excluded from the content class so the generic quoted
+# redactor does not eat placeholders emitted by the targeted redactors.
+# Without that exclusion, a canonical essence like
+#     'NoneType' object has no attribute 'split'
+# → targeted → 'NoneType' → '<type>' and 'split' → '<attr>'
+# → generic  → '<type>'<val>'<attr>'   (the whole thing collapses)
+# Excluding `<>` leaves already-redacted tokens alone.
+_QUOTED_SINGLE = re.compile(r"'([^'<>]{8,})'")
+_QUOTED_DOUBLE = re.compile(r'"([^"<>]{8,})"')
 
 
 # ── Data model ───────────────────────────────────────────────────────────────
@@ -211,24 +252,69 @@ def _redact(text: str) -> str:
     s = _LINE_COL.sub(r"\1:<L>", s)
     s = _HEX_ID.sub("<id>", s)
     s = _NUMBER.sub("<n>", s)
-    s = _QUOTED.sub(r"\1<val>\1", s)
+    s = _QUOTED_SINGLE.sub("'<val>'", s)
+    s = _QUOTED_DOUBLE.sub('"<val>"', s)
     return s
 
 
 def _pick_final_line(text: str) -> str:
-    """Pick the most informative single line from a multi-line error."""
+    """Pick the most informative single line from a multi-line error.
+
+    Preference order (highest first):
+    1. Last line where an error pattern matches at the START of the line
+       AND the match is not ``FAIL``/``FAILED`` (a pytest summary prefix).
+       e.g. ``ModuleNotFoundError: No module named 'foo'`` from a traceback.
+    2. Last line where an error pattern appears anywhere — but if the line is
+       a pytest-style ``FAILED <path> - <ErrorType>: …`` line, strip the prefix
+       and return only the ``<ErrorType>: …`` suffix so the fingerprint matches
+       the bare error-type form that ``lore fix`` stores.
+    3. The last non-empty line.
+
+    The pytest-prefix stripping is the critical fix for the ``fix``→``watch``
+    primary-lookup mismatch: without it, ``watch`` computes a different hash
+    for ``FAILED tests/foo.py - ModuleNotFoundError: …`` than ``fix`` stores
+    for ``ModuleNotFoundError: No module named 'foo'``, so the fingerprint-hash
+    index never fires and the LIKE-fallback rescues only ~50% of cases.
+    """
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     if not lines:
         return ""
-    # Prefer the last line matching an error pattern (that's usually the punchline)
+
+    # Pass 1: last line where a non-FAILED error pattern anchors at position 0
+    for line in reversed(lines):
+        for pat, label in _ERROR_TYPE_PATTERNS:
+            m = pat.search(line)
+            if m and m.start() == 0 and label != "TestFailure":
+                return line
+
+    # Pass 2: last line where any error pattern matches — strip pytest prefix
     for line in reversed(lines):
         for pat, _ in _ERROR_TYPE_PATTERNS:
             if pat.search(line):
+                # Pytest FAILED summary: "FAILED path/test.py::fn - ErrorType: msg"
+                # Strip everything up to and including " - " to get the bare error.
+                sep = " - "
+                idx = line.find(sep)
+                if idx != -1:
+                    suffix = line[idx + len(sep):]
+                    # Only use suffix if it itself looks like an error line
+                    for p2, _ in _ERROR_TYPE_PATTERNS:
+                        if p2.search(suffix):
+                            return suffix
                 return line
+
     return lines[-1]
 
 
 # ── Public API ───────────────────────────────────────────────────────────────
+
+#: Hard cap on the input text length. Anything bigger is truncated to the
+#: last ``_MAX_INPUT_BYTES`` — the tail is where the actual error almost
+#: always lives (tracebacks are bottom-heavy). Guards against DoS via
+#: 100 MB payloads that took ~24 seconds to redact in the pre-hardening
+#: fingerprinter. Chosen to fit every realistic agent stderr blob.
+_MAX_INPUT_BYTES = 65_536
+
 
 def compute_fingerprint(error_text: str) -> Fingerprint:
     """
@@ -238,6 +324,9 @@ def compute_fingerprint(error_text: str) -> Fingerprint:
     across repos, machines, and versions.
     """
     text = error_text or ""
+    if len(text) > _MAX_INPUT_BYTES:
+        # Keep the tail — errors live at the bottom of stack traces
+        text = text[-_MAX_INPUT_BYTES:]
     final_line = _pick_final_line(text)
     essence = _redact(final_line)[:200]
 

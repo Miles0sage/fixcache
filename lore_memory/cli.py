@@ -189,6 +189,10 @@ def _build_parser() -> argparse.ArgumentParser:
     d_stats = darwin_sub.add_parser("stats", help="Corpus-wide Darwin stats")
     d_stats.add_argument("--json", dest="darwin_json", action="store_true")
 
+    d_rep = darwin_sub.add_parser("report", help="Record fix outcome (closes the Darwin feedback loop)")
+    d_rep.add_argument("pattern_id", help="Pattern ID from a 'watch' suggestion")
+    d_rep.add_argument("outcome", choices=["success", "failure"], help="Outcome of applying the fix")
+
     d_exp = darwin_sub.add_parser("export", help="Export sanitized fingerprint corpus")
     d_exp.add_argument("--min-seen", type=int, default=1, help="Floor for inclusion")
     d_exp.add_argument("--out", help="Write JSON to this path (default: stdout)")
@@ -463,7 +467,7 @@ def _cmd_activate(args: argparse.Namespace, mem: LoreMemory) -> int:
 
 
 def _cmd_darwin(args: argparse.Namespace, mem: LoreMemory) -> int:
-    from .darwin_replay import classify, darwin_stats, export_sanitized
+    from .darwin_replay import classify, darwin_stats, export_sanitized, record_outcome
 
     sub_cmd = args.darwin_command
 
@@ -523,6 +527,35 @@ def _cmd_darwin(args: argparse.Namespace, mem: LoreMemory) -> int:
         print("Efficacy bands:")
         for band, count in s["efficacy_bands"].items():
             print(f"  {band:10s}  {count}")
+        return 0
+
+    if sub_cmd == "report":
+        # Look up the fingerprint_hash from the pattern's stored metadata
+        pat_row = mem.store.conn.execute(
+            "SELECT metadata FROM darwin_patterns WHERE id = ?", (args.pattern_id,)
+        ).fetchone()
+        if pat_row is None:
+            print(f"Error: unknown pattern_id: {args.pattern_id}", file=sys.stderr)
+            return 1
+        try:
+            pat_meta = json.loads(pat_row[0]) if pat_row[0] else {}
+            fp_hash = pat_meta.get("fingerprint_hash")
+        except (json.JSONDecodeError, TypeError):
+            fp_hash = None
+        if not fp_hash:
+            print(f"Error: pattern {args.pattern_id} has no fingerprint_hash in metadata", file=sys.stderr)
+            return 1
+        result = record_outcome(mem.store, fp_hash, args.outcome)
+        if not result.get("success"):
+            print(f"Error: {result.get('error', 'unknown')}", file=sys.stderr)
+            return 1
+        eff = result.get("efficacy")
+        eff_str = f"{eff:.0%}" if eff is not None else "unrated"
+        print(f"Recorded {args.outcome} for pattern {args.pattern_id}")
+        print(f"  fingerprint : {fp_hash}")
+        print(f"  successes   : {result['total_success']}")
+        print(f"  failures    : {result['total_failure']}")
+        print(f"  efficacy    : {eff_str}")
         return 0
 
     if sub_cmd == "export":
