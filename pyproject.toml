@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lore-memory"
-version = "0.2.1"
+version = "0.2.2"
 description = "Memory that learns from forgetting. A 1-dependency Python library that gives any LLM persistent memory with auto-evolving knowledge graphs, temporal reasoning, and fleet-wide failure learning."
 requires-python = ">=3.11"
 license = "MIT"

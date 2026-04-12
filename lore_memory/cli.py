@@ -131,6 +131,27 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional extra tags to apply to all ingested memories",
     )
 
+    # ingest — parse Claude Code transcripts for auto-fix recipes
+    ing = sub.add_parser("ingest", help="Ingest Claude Code transcripts")
+    ing_sub = ing.add_subparsers(dest="ingest_command", required=True)
+
+    ing_trans = ing_sub.add_parser("transcript", help="Ingest a specific transcript file")
+    ing_trans.add_argument("path", help="Path to Claude Code session .jsonl")
+    ing_trans.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Extract recipes but do not store them",
+    )
+
+    ing_last = ing_sub.add_parser(
+        "last-session", help="Ingest the most recent Claude Code transcript"
+    )
+    ing_last.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Extract recipes but do not store them",
+    )
+
     # doctor
     doc = sub.add_parser("doctor", help="Health check and self-repair")
     doc.add_argument(
@@ -375,6 +396,47 @@ def _cmd_sync(args: argparse.Namespace, mem: LoreMemory) -> int:
     return 0
 
 
+def _cmd_ingest(args: argparse.Namespace, mem: LoreMemory) -> int:
+    from .ingest import ingest_transcript, find_latest_transcript
+    from pathlib import Path
+
+    sub_cmd = args.ingest_command
+    dry = bool(getattr(args, "dry_run", False))
+
+    if sub_cmd == "transcript":
+        path = Path(args.path).expanduser().resolve()
+        if not path.exists():
+            print(f"Transcript not found: {path}", file=sys.stderr)
+            return 1
+    elif sub_cmd == "last-session":
+        path = find_latest_transcript()
+        if path is None:
+            print("No Claude Code transcripts found under ~/.claude/projects/", file=sys.stderr)
+            return 1
+        print(f"Using transcript: {path}")
+    else:
+        return 1
+
+    report = ingest_transcript(mem.store, path, dry_run=dry)
+    print(f"Messages scanned  : {report['total_messages']}")
+    print(f"Recipes extracted : {report['recipes_extracted']}")
+    if dry:
+        print("(dry run — nothing stored)")
+    else:
+        print(f"Recipes stored    : {report['recipes_stored']}")
+    if report["recipes"]:
+        print()
+        print("Top recipes:")
+        for i, r in enumerate(report["recipes"][:5], 1):
+            sig = r["error_signature"][:80]
+            print(f"  [{i}] {sig}")
+            for step in r["solution_steps"][:3]:
+                print(f"      → {step}")
+            if len(r["solution_steps"]) > 3:
+                print(f"      → (+{len(r['solution_steps']) - 3} more)")
+    return 0
+
+
 def _cmd_doctor(args: argparse.Namespace) -> int:
     from .doctor import run_doctor, format_report
     from .config import LoreConfig
@@ -435,6 +497,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_sync(args, mem)
         if cmd == "ingest-wiki":
             return _cmd_ingest_wiki(args, mem)
+        if cmd == "ingest":
+            return _cmd_ingest(args, mem)
 
     parser.print_help()
     return 1
