@@ -174,12 +174,15 @@ class TestSyncAgentsMd:
 # ── sync_all ──────────────────────────────────────────────────────────────────
 
 class TestSyncAll:
-    def test_creates_all_three_files(self, populated_store, tmp_path):
+    def test_creates_all_four_files(self, populated_store, tmp_path):
         report = sync_all(populated_store, tmp_path)
         assert (tmp_path / "CLAUDE.md").exists()
         assert (tmp_path / ".cursorrules").exists()
+        assert (tmp_path / ".windsurfrules").exists()
         assert (tmp_path / "AGENTS.md").exists()
-        assert set(report["created"]) == {"CLAUDE.md", ".cursorrules", "AGENTS.md"}
+        assert set(report["created"]) == {
+            "CLAUDE.md", ".cursorrules", ".windsurfrules", "AGENTS.md",
+        }
         assert report["synced"] == []
 
     def test_detects_existing_files(self, populated_store, tmp_path):

@@ -111,7 +111,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--format",
         dest="sync_format",
         default="all",
-        choices=["claude", "cursor", "codex", "all"],
+        choices=["claude", "cursor", "windsurf", "codex", "all"],
         help="Output format (default: all)",
     )
 
@@ -129,6 +129,20 @@ def _build_parser() -> argparse.ArgumentParser:
         nargs="*",
         metavar="TAG",
         help="Optional extra tags to apply to all ingested memories",
+    )
+
+    # doctor
+    doc = sub.add_parser("doctor", help="Health check and self-repair")
+    doc.add_argument(
+        "--fix",
+        action="store_true",
+        help="Attempt to repair any fixable issues",
+    )
+    doc.add_argument(
+        "--json",
+        dest="doctor_json",
+        action="store_true",
+        help="Output as JSON",
     )
 
     # hook
@@ -323,7 +337,10 @@ def _cmd_ingest_wiki(args: argparse.Namespace, mem: LoreMemory) -> int:
 
 
 def _cmd_sync(args: argparse.Namespace, mem: LoreMemory) -> int:
-    from .sync import sync_claude_md, sync_cursorrules, sync_agents_md, sync_all
+    from .sync import (
+        sync_claude_md, sync_cursorrules, sync_windsurfrules,
+        sync_agents_md, sync_all,
+    )
     from pathlib import Path
 
     project_dir = Path(args.project_dir).expanduser().resolve()
@@ -347,11 +364,31 @@ def _cmd_sync(args: argparse.Namespace, mem: LoreMemory) -> int:
         path = project_dir / ".cursorrules"
         sync_cursorrules(mem.store, path)
         print(f"Written : {path}")
+    elif fmt == "windsurf":
+        path = project_dir / ".windsurfrules"
+        sync_windsurfrules(mem.store, path)
+        print(f"Written : {path}")
     elif fmt == "codex":
         path = project_dir / "AGENTS.md"
         sync_agents_md(mem.store, path)
         print(f"Written : {path}")
     return 0
+
+
+def _cmd_doctor(args: argparse.Namespace) -> int:
+    from .doctor import run_doctor, format_report
+    from .config import LoreConfig
+
+    cfg = LoreConfig(config_path=getattr(args, "config", None))
+    db_path = getattr(args, "db", None) or cfg.db_path
+
+    report = run_doctor(db_path, fix=bool(getattr(args, "fix", False)))
+
+    if getattr(args, "doctor_json", False):
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        print(format_report(report))
+    return 0 if report.healthy else 2
 
 
 def _cmd_hook(args: argparse.Namespace) -> int:
@@ -374,9 +411,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    # hook command does not need the memory store open
+    # hook and doctor commands do not need the memory store open
     if args.command == "hook":
         return _cmd_hook(args)
+    if args.command == "doctor":
+        return _cmd_doctor(args)
 
     with _open_mem(args) as mem:
         cmd = args.command

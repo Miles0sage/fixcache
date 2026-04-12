@@ -22,6 +22,9 @@ _CURSOR_MARKER_END = "# LORE:END"
 _AGENTS_MARKER_START = "# LORE:START"
 _AGENTS_MARKER_END = "# LORE:END"
 
+_WINDSURF_MARKER_START = "# LORE:START"
+_WINDSURF_MARKER_END = "# LORE:END"
+
 
 # ── Section builders ──────────────────────────────────────────────────────────
 
@@ -197,6 +200,23 @@ def sync_agents_md(store: MemoryStore, output_path: str | Path) -> str:
     return updated
 
 
+def sync_windsurfrules(store: MemoryStore, output_path: str | Path) -> str:
+    """
+    Generate or update a .windsurfrules file with a lore-memory section.
+
+    Uses # LORE:START / # LORE:END markers (Windsurf / Codeium format).
+
+    Returns the final file content.
+    """
+    path = Path(output_path)
+    existing = path.read_text(encoding="utf-8") if path.exists() else ""
+    block = _build_lore_block(store)
+    updated = _upsert_markers(existing, block, _WINDSURF_MARKER_START, _WINDSURF_MARKER_END)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(updated, encoding="utf-8")
+    return updated
+
+
 def sync_all(store: MemoryStore, project_dir: str | Path) -> dict[str, Any]:
     """
     Run all syncers for the given project directory.
@@ -217,6 +237,7 @@ def sync_all(store: MemoryStore, project_dir: str | Path) -> dict[str, Any]:
     targets = [
         ("CLAUDE.md", sync_claude_md),
         (".cursorrules", sync_cursorrules),
+        (".windsurfrules", sync_windsurfrules),
         ("AGENTS.md", sync_agents_md),
     ]
 
