@@ -1,0 +1,45 @@
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"/app/main.py\", line 3, in <module>\n    import sklearn\nModuleNotFoundError: No module named 'sklearn'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"/srv/worker.py\", line 1, in <module>\n    import pandas\nModuleNotFoundError: No module named 'pandas'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"/home/u/x.py\", line 2, in <module>\n    import numpy\nModuleNotFoundError: No module named 'numpy'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"/opt/app/run.py\", line 5, in <module>\n    import requests\nModuleNotFoundError: No module named 'requests'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"/var/task/handler.py\", line 4, in <module>\n    import boto3\nModuleNotFoundError: No module named 'boto3'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"/code/api.py\", line 7, in <module>\n    import fastapi\nModuleNotFoundError: No module named 'fastapi'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"/app/svc.py\", line 42, in get_user\n    return user.profile.name\nAttributeError: 'NoneType' object has no attribute 'profile'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"/srv/handler.py\", line 19, in process\n    response.json()\nAttributeError: 'NoneType' object has no attribute 'json'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"/home/u/bot.py\", line 8, in main\n    msg.content.strip()\nAttributeError: 'NoneType' object has no attribute 'content'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"/opt/q.py\", line 22, in enqueue\n    job.payload.get('id')\nAttributeError: 'NoneType' object has no attribute 'payload'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"/app/api.py\", line 11, in fetch\n    data.rows[0]\nAttributeError: 'NoneType' object has no attribute 'rows'"}
+{"class": "py-type-not-subscriptable", "text": "Traceback (most recent call last):\n  File \"/app/x.py\", line 14, in run\n    val = obj[0]\nTypeError: 'int' object is not subscriptable"}
+{"class": "py-type-not-subscriptable", "text": "Traceback (most recent call last):\n  File \"/srv/y.py\", line 7, in run\n    val = obj[0]\nTypeError: 'NoneType' object is not subscriptable"}
+{"class": "py-type-not-subscriptable", "text": "Traceback (most recent call last):\n  File \"/home/u/z.py\", line 3, in run\n    val = obj[0]\nTypeError: 'float' object is not subscriptable"}
+{"class": "py-type-not-subscriptable", "text": "Traceback (most recent call last):\n  File \"/opt/app/q.py\", line 88, in run\n    val = obj[0]\nTypeError: 'bool' object is not subscriptable"}
+{"class": "py-syntax-invalid", "text": "  File \"/app/broken.py\", line 12\n    def foo(\n          ^\nSyntaxError: invalid syntax"}
+{"class": "py-syntax-invalid", "text": "  File \"/srv/bad.py\", line 44\n    return x +\n              ^\nSyntaxError: invalid syntax"}
+{"class": "py-syntax-invalid", "text": "  File \"/home/u/a.py\", line 7\n    if x == :\n           ^\nSyntaxError: invalid syntax"}
+{"class": "py-syntax-invalid", "text": "  File \"/opt/x.py\", line 101\n    print 'hi'\n             ^\nSyntaxError: invalid syntax"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'express'\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1142:15)\n    at Function.Module._load (node:internal/modules/cjs/loader:983:27)\n    at Module.require (node:internal/modules/cjs/loader:1231:19)\n    at require (node:internal/modules/helpers:177:18)\n    at Object.<anonymous> (/app/server.js:1:17)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'lodash'\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1142:15)\n    at Object.<anonymous> (/srv/api/index.js:2:16)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'react'\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1142:15)\n    at Object.<anonymous> (/home/u/app/src/index.js:1:14)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'typescript'\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1142:15)\n    at Object.<anonymous> (/opt/build/tsc.js:3:21)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'webpack'\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1142:15)\n    at Object.<anonymous> (/ci/build/webpack.config.js:4:17)"}
+{"class": "node-undefined-not-fn", "text": "TypeError: fn is not a function\n    at Object.<anonymous> (/app/server.js:12:5)"}
+{"class": "node-undefined-not-fn", "text": "TypeError: callback is not a function\n    at Object.<anonymous> (/srv/lib/queue.js:42:3)"}
+{"class": "node-undefined-not-fn", "text": "TypeError: handler is not a function\n    at Object.<anonymous> (/home/u/x/router.js:7:9)"}
+{"class": "node-undefined-not-fn", "text": "TypeError: mw is not a function\n    at Object.<anonymous> (/opt/app/app.js:23:4)"}
+{"class": "rust-unused-import", "text": "warning: unused import: `std::collections::HashMap`\n --> src/main.rs:2:5\n  |\n2 | use std::collections::HashMap;\n  |     ^^^^^^^^^^^^^^^^^^^^^^^^^\nerror: aborting due to previous error"}
+{"class": "rust-unused-import", "text": "warning: unused import: `std::fs::File`\n --> src/lib.rs:5:5\n  |\n5 | use std::fs::File;\n  |     ^^^^^^^^^^^^^\nerror: aborting due to previous error"}
+{"class": "rust-unused-import", "text": "warning: unused import: `serde::Serialize`\n --> src/model.rs:1:5\n  |\n1 | use serde::Serialize;\n  |     ^^^^^^^^^^^^^^^^\nerror: aborting due to previous error"}
+{"class": "shell-command-not-found", "text": "bash: docker: command not found\nexit code 127"}
+{"class": "shell-command-not-found", "text": "bash: kubectl: command not found\nexit code 127"}
+{"class": "shell-command-not-found", "text": "bash: terraform: command not found\nexit code 127"}
+{"class": "shell-command-not-found", "text": "bash: jq: command not found\nexit code 127"}
+{"class": "file-not-found", "text": "cat: /etc/foo.conf: No such file or directory\nexit code 1"}
+{"class": "file-not-found", "text": "cat: /tmp/bar.log: No such file or directory\nexit code 1"}
+{"class": "file-not-found", "text": "cat: /var/data/baz.json: No such file or directory\nexit code 1"}
+{"class": "file-not-found", "text": "cat: /root/quux.yml: No such file or directory\nexit code 1"}
+{"class": "go-undefined", "text": "# myapp/handler\n./handler.go:12:9: undefined: UserService\n./handler.go:18:5: undefined: ctx"}
+{"class": "go-undefined", "text": "# myapp/api\n./api.go:3:2: undefined: router\n./api.go:8:5: undefined: ctx"}
+{"class": "go-undefined", "text": "# proj/db\n./db.go:22:4: undefined: Conn\n./db.go:30:5: undefined: ctx"}
+{"class": "py-import-error", "text": "Traceback (most recent call last):\n  File \"/app/x.py\", line 2, in <module>\n    from foo import bar\nImportError: cannot import name 'bar' from 'foo'"}
+{"class": "py-import-error", "text": "Traceback (most recent call last):\n  File \"/srv/x.py\", line 1, in <module>\n    from svc import Client\nImportError: cannot import name 'Client' from 'svc'"}
+{"class": "py-import-error", "text": "Traceback (most recent call last):\n  File \"/home/u/x.py\", line 4, in <module>\n    from util import parse\nImportError: cannot import name 'parse' from 'util'"}

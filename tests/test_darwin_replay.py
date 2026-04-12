@@ -37,12 +37,24 @@ class TestFingerprintComputation:
         b = fingerprint_hash("ModuleNotFoundError: No module named 'foo'")
         assert a == b
 
-    def test_different_errors_different_hash(self) -> None:
+    def test_same_shape_module_not_found_collapses(self) -> None:
+        """Different module names in `No module named 'X'` should collapse to one fp.
+
+        This is the headline claim of lore-memory: sklearn/pandas/numpy all
+        reduce to the same python/ModuleNotFoundError fingerprint so that a
+        single learned fix ('pip install <pkg>') applies across every repo.
+        """
         a = fingerprint_hash("ModuleNotFoundError: No module named 'foo'")
         b = fingerprint_hash("ModuleNotFoundError: No module named 'bar'")
-        # These differ in module name — after redaction still differ if module name survives
-        # Our redactor strips quoted strings of length >=8, so 'foo'/'bar' (3 chars) survive
-        assert a != b
+        c = fingerprint_hash("ModuleNotFoundError: No module named 'scikit-learn'")
+        assert a == b == c
+
+    def test_different_error_classes_do_not_collide(self) -> None:
+        """Semantically distinct error shapes must produce distinct hashes."""
+        mod = fingerprint_hash("ModuleNotFoundError: No module named 'foo'")
+        attr = fingerprint_hash("AttributeError: 'NoneType' object has no attribute 'x'")
+        sub = fingerprint_hash("TypeError: 'int' object is not subscriptable")
+        assert len({mod, attr, sub}) == 3
 
     def test_absolute_paths_redacted(self) -> None:
         a = compute_fingerprint(

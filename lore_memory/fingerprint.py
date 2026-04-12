@@ -54,9 +54,13 @@ _ECOSYSTEM_CUES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\b(npm|yarn|pnpm|node|\.js\b|\.ts\b|\.tsx\b|package\.json)"), "node"),
     (re.compile(r"\b(cargo|rustc|\.rs\b|borrow checker)"), "rust"),
     (re.compile(r"\b(go build|go test|\.go\b|\bgo\s)"), "go"),
+    # shell comes before docker so that `bash: docker: command not found`
+    # routes to shell (the surrounding context) rather than docker (a word
+    # that happens to appear in the error). Real docker errors don't usually
+    # have a shell prefix, so this doesn't misroute them.
+    (re.compile(r"\b(bash|zsh|sh:|/bin/)"), "shell"),
     (re.compile(r"\b(docker|docker-compose|Dockerfile)"), "docker"),
     (re.compile(r"\b(git\s|fatal:|merge conflict)"), "git"),
-    (re.compile(r"\b(bash|zsh|sh:|/bin/)"), "shell"),
 ]
 
 _TOOL_CUES: list[tuple[re.Pattern[str], str]] = [
@@ -73,6 +77,47 @@ _TOOL_CUES: list[tuple[re.Pattern[str], str]] = [
 
 
 # ── Redaction patterns ───────────────────────────────────────────────────────
+
+# Targeted patterns: canonicalize common error shapes so that specific
+# identifiers (module names, attribute names, type names, filenames) collapse
+# to generic placeholders. These run BEFORE the generic redactors so that
+# class-specific structure survives but value-specific tokens do not.
+#
+# The ordering matters: more specific patterns come first.
+_TARGETED_REDACTORS: list[tuple[re.Pattern[str], str]] = [
+    # ── Python ──────────────────────────────────────────────────────────────
+    (re.compile(r"No module named ['\"][^'\"]*['\"]"), "No module named '<mod>'"),
+    (
+        re.compile(r"cannot import name ['\"][^'\"]*['\"] from ['\"][^'\"]*['\"]"),
+        "cannot import name '<name>' from '<mod>'",
+    ),
+    (re.compile(r"cannot import name ['\"][^'\"]*['\"]"), "cannot import name '<name>'"),
+    (
+        re.compile(r"['\"][^'\"]+['\"] object has no attribute ['\"][^'\"]*['\"]"),
+        "'<type>' object has no attribute '<attr>'",
+    ),
+    (
+        re.compile(r"['\"][^'\"]+['\"] object is not subscriptable"),
+        "'<type>' object is not subscriptable",
+    ),
+    (re.compile(r"['\"][^'\"]+['\"] object is not iterable"), "'<type>' object is not iterable"),
+    (re.compile(r"['\"][^'\"]+['\"] object is not callable"), "'<type>' object is not callable"),
+    # ── Node / JS ───────────────────────────────────────────────────────────
+    (re.compile(r"Cannot find module ['\"][^'\"]*['\"]"), "Cannot find module '<mod>'"),
+    (re.compile(r"\b\w+ is not a function\b"), "<name> is not a function"),
+    (re.compile(r"\b\w+ is not defined\b"), "<name> is not defined"),
+    # ── Go ──────────────────────────────────────────────────────────────────
+    (re.compile(r"undefined: \w+"), "undefined: <name>"),
+    # ── Rust ────────────────────────────────────────────────────────────────
+    (re.compile(r"unused import: `[^`]+`"), "unused import: `<name>`"),
+    (re.compile(r"cannot find `\w+` in this scope"), "cannot find `<name>` in this scope"),
+    # ── Shell ───────────────────────────────────────────────────────────────
+    (re.compile(r"\S+: command not found"), "<cmd>: command not found"),
+    # ── Filesystem ──────────────────────────────────────────────────────────
+    (re.compile(r"\S+: No such file or directory"), "<path>: No such file or directory"),
+    # ── Relative paths (./foo.go, ./src/main.rs, ./foo.go:12:9) ────────────
+    (re.compile(r"\./[\w./-]+\.[a-z]+(?::\d+)?(?::\d+)?"), "./<file>"),
+]
 
 # Strip file paths: /any/abs/path/foo.py → foo.py
 _ABS_PATH = re.compile(r"(?:/[^\s:'\"`]+/)+([^/\s:'\"`]+)")
@@ -152,8 +197,16 @@ def _extract_top_frame(text: str) -> str | None:
 
 
 def _redact(text: str) -> str:
-    """Strip paths, IDs, big numbers, and long quoted literals."""
+    """Strip paths, IDs, big numbers, and long quoted literals.
+
+    Applies targeted error-shape canonicalization first, then generic
+    path/id/number/quoted redaction. Targeted patterns preserve the
+    *shape* of common errors while collapsing specific identifiers,
+    which is what lets sklearn/pandas/numpy all map to one fingerprint.
+    """
     s = text
+    for pat, replacement in _TARGETED_REDACTORS:
+        s = pat.sub(replacement, s)
     s = _ABS_PATH.sub(r"<p>/\1", s)
     s = _LINE_COL.sub(r"\1:<L>", s)
     s = _HEX_ID.sub("<id>", s)
@@ -193,12 +246,15 @@ def compute_fingerprint(error_text: str) -> Fingerprint:
     tool = _detect_tool(text)
     top_frame = _extract_top_frame(text)
 
+    # top_frame is intentionally excluded from the canonical hash:
+    # including it made different filenames produce different fingerprints,
+    # which defeated cross-repo collapse. It's still returned on the
+    # Fingerprint dataclass for display and debugging.
     canonical = "|".join(
         [
             error_type,
             ecosystem,
             tool,
-            top_frame or "-",
             essence,
         ]
     )
