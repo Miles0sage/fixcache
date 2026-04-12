@@ -318,6 +318,57 @@ TOOL_SCHEMAS: dict[str, dict] = {
             },
         },
     },
+    "lore_darwin_classify": {
+        "description": (
+            "Darwin Replay: given raw error text, compute the normalized "
+            "failure fingerprint and return the ranked fix recipes for this "
+            "failure class with their measured success rates. "
+            "Use this as the front door for 'I'm seeing this error again — "
+            "what has worked before?'"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "error_text": {
+                    "type": "string",
+                    "description": "Raw error text to classify.",
+                },
+                "top_k": {
+                    "type": "integer",
+                    "description": "Max candidate recipes to return. Default: 3.",
+                },
+            },
+            "required": ["error_text"],
+        },
+    },
+    "lore_darwin_stats": {
+        "description": (
+            "Return corpus-wide Darwin fingerprint statistics: total "
+            "fingerprints, top ecosystems, top error types, efficacy bands. "
+            "This is the dashboard of the Darwin moat."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {},
+        },
+    },
+    "lore_darwin_export": {
+        "description": (
+            "Export the fingerprint corpus in a sanitized, shareable form. "
+            "Fingerprints are already redacted by construction — this "
+            "returns aggregate counts only, safe to publish or ship as "
+            "a memory pack."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "min_total_seen": {
+                    "type": "integer",
+                    "description": "Floor for inclusion (drop rare noise). Default: 1.",
+                },
+            },
+        },
+    },
     "lore_knowledge": {
         "description": (
             "Search the wiki-ingested cognition base for relevant knowledge. "

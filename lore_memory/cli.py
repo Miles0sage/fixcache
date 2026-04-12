@@ -131,6 +131,22 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional extra tags to apply to all ingested memories",
     )
 
+    # darwin — Darwin Replay: classify/stats/export of failure fingerprints
+    darwin = sub.add_parser("darwin", help="Darwin Replay: fingerprints + efficacy")
+    darwin_sub = darwin.add_subparsers(dest="darwin_command", required=True)
+
+    d_cls = darwin_sub.add_parser("classify", help="Classify an error → fingerprint + ranked recipes")
+    d_cls.add_argument("error_text", help="Raw error text (or - for stdin)")
+    d_cls.add_argument("--top-k", type=int, default=3, help="Max recipes to show")
+    d_cls.add_argument("--json", dest="darwin_json", action="store_true")
+
+    d_stats = darwin_sub.add_parser("stats", help="Corpus-wide Darwin stats")
+    d_stats.add_argument("--json", dest="darwin_json", action="store_true")
+
+    d_exp = darwin_sub.add_parser("export", help="Export sanitized fingerprint corpus")
+    d_exp.add_argument("--min-seen", type=int, default=1, help="Floor for inclusion")
+    d_exp.add_argument("--out", help="Write JSON to this path (default: stdout)")
+
     # ingest — parse Claude Code transcripts for auto-fix recipes
     ing = sub.add_parser("ingest", help="Ingest Claude Code transcripts")
     ing_sub = ing.add_subparsers(dest="ingest_command", required=True)
@@ -276,66 +292,36 @@ def _cmd_teach(args: argparse.Namespace, mem: LoreMemory) -> int:
 
 
 def _cmd_fix(args: argparse.Namespace, mem: LoreMemory) -> int:
-    from .mcp.server import handle_lore_fix, _get_store
-    # Point the MCP server at the same DB by patching the module-level store.
-    # Simpler: call the underlying logic directly using mem.store.
-    import time
-    import uuid
+    """
+    CLI wrapper for `lore-memory fix`. Delegates to handle_lore_fix so the
+    CLI path and MCP path share the same transaction semantics, fingerprint
+    upsert, and validation logic.
+    """
+    from .mcp.server import handle_lore_fix
+    import lore_memory.mcp.server as server_mod
 
-    store = mem.store
-    now = time.time()
-    recipe_id = str(uuid.uuid4())
-    steps = args.steps
-    tags = getattr(args, "tags", None) or []
-    outcome = args.outcome
-    error_signature = args.error_signature
+    # Wire the module-level MCP store to the CLI's store so handle_lore_fix
+    # writes to the same database the user opened.
+    server_mod._store = mem.store
+    try:
+        result = handle_lore_fix(
+            error_signature=args.error_signature,
+            solution_steps=args.steps,
+            tags=getattr(args, "tags", None) or [],
+            outcome=args.outcome,
+        )
+    finally:
+        server_mod._store = None
 
-    steps_text = "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps))
-    steps_json = json.dumps(steps)
-    meta_json = json.dumps({"tags": tags, "recipe_id": recipe_id})
+    if not result.get("success"):
+        print(f"Error: {result.get('error', 'unknown')}", file=sys.stderr)
+        return 1
 
-    store.wal.record(
-        "INSERT", "darwin_journal", record_id=recipe_id,
-        data={"error_signature": error_signature, "solution_steps": steps, "tags": tags},
-    )
-    store.conn.execute(
-        "INSERT INTO darwin_journal (id, query, result_ids, outcome, correction, timestamp, metadata) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (recipe_id, error_signature, recipe_id, outcome, steps_json, now, meta_json),
-    )
-
-    pattern_id = str(uuid.uuid4())
-    description = f"Fix for: {error_signature[:120]}"
-    store.wal.record(
-        "INSERT", "darwin_patterns", record_id=pattern_id,
-        data={"error_signature": error_signature, "tags": tags},
-    )
-    store.conn.execute(
-        "INSERT INTO darwin_patterns "
-        "(id, pattern_type, description, rule, frequency, confidence, created_at, last_triggered) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (pattern_id, "error_recipe", description, steps_json, 1, 0.5, now, now),
-    )
-
-    mem_content = f"ERROR FIX: {error_signature}\nSOLUTION:\n{steps_text}"
-    if tags:
-        mem_content += f"\nTAGS: {','.join(tags)}"
-    mem_id = store.add(
-        content=mem_content,
-        memory_type="experience",
-        metadata={
-            "recipe_id": recipe_id,
-            "pattern_id": pattern_id,
-            "error_signature": error_signature,
-            "tags": tags,
-        },
-    )
-    store.conn.commit()
-
-    print(f"Stored fix: recipe_id={recipe_id}")
-    print(f"  error_signature : {error_signature}")
-    print(f"  steps           : {len(steps)}")
-    print(f"  memory_id       : {mem_id}")
+    print(f"Stored fix: recipe_id={result['recipe_id']}")
+    print(f"  error_signature : {result['error_signature']}")
+    print(f"  steps           : {result['steps_count']}")
+    print(f"  memory_id       : {result['memory_id']}")
+    print(f"  fingerprint     : {result['fingerprint_hash']} ({result['fingerprint_error_type']}/{result['fingerprint_ecosystem']})")
     return 0
 
 
@@ -394,6 +380,83 @@ def _cmd_sync(args: argparse.Namespace, mem: LoreMemory) -> int:
         sync_agents_md(mem.store, path)
         print(f"Written : {path}")
     return 0
+
+
+def _cmd_darwin(args: argparse.Namespace, mem: LoreMemory) -> int:
+    from .darwin_replay import classify, darwin_stats, export_sanitized
+
+    sub_cmd = args.darwin_command
+
+    if sub_cmd == "classify":
+        text = args.error_text
+        if text == "-":
+            text = sys.stdin.read()
+        result = classify(mem.store, text, top_k=args.top_k)
+        if getattr(args, "darwin_json", False):
+            print(json.dumps(result, indent=2, default=str))
+            return 0
+        fp = result["fingerprint"]
+        print(f"Fingerprint : {fp['hash']}  ({fp['error_type']} / {fp['ecosystem']})")
+        print(f"Essence     : {fp['essence']}")
+        stats = result.get("fingerprint_stats")
+        if stats:
+            eff = stats.get("efficacy")
+            eff_str = f"{eff:.0%}" if eff is not None else "unrated"
+            print(f"Seen {stats['total_seen']}x — {stats['total_success']} pass, {stats['total_failure']} fail — efficacy {eff_str}")
+        else:
+            print("Seen 0x — first time this class of failure has been fingerprinted.")
+        print()
+        if result["candidates"]:
+            print(f"Top {len(result['candidates'])} recipes:")
+            for i, c in enumerate(result["candidates"], 1):
+                print(f"  [{i}] confidence={c['confidence']}  freq={c['frequency']}")
+                print(f"      {c['description'][:120]}")
+                for step in c["solution_steps"][:5]:
+                    print(f"      → {step}")
+        else:
+            print("No recipes found for this fingerprint yet.")
+        return 0
+
+    if sub_cmd == "stats":
+        s = darwin_stats(mem.store)
+        if getattr(args, "darwin_json", False):
+            print(json.dumps(s, indent=2, default=str))
+            return 0
+        print(f"Total fingerprints : {s['total_fingerprints']}")
+        print(f"Total seen events  : {s['total_seen_events']}")
+        print(f"Successes          : {s['total_success']}")
+        print(f"Failures           : {s['total_failure']}")
+        if s["overall_efficacy"] is not None:
+            print(f"Overall efficacy   : {s['overall_efficacy']:.1%}")
+        else:
+            print("Overall efficacy   : (no outcomes yet)")
+        print()
+        if s["top_ecosystems"]:
+            print("Top ecosystems:")
+            for eco, count in s["top_ecosystems"].items():
+                print(f"  {eco:12s}  {count}")
+        if s["top_error_types"]:
+            print("Top error types:")
+            for et, count in s["top_error_types"].items():
+                print(f"  {et:24s}  {count}")
+        print()
+        print("Efficacy bands:")
+        for band, count in s["efficacy_bands"].items():
+            print(f"  {band:10s}  {count}")
+        return 0
+
+    if sub_cmd == "export":
+        corpus = export_sanitized(mem.store, min_total_seen=args.min_seen)
+        payload = json.dumps(corpus, indent=2)
+        if args.out:
+            from pathlib import Path
+            Path(args.out).write_text(payload, encoding="utf-8")
+            print(f"Wrote {len(corpus)} fingerprints to {args.out}")
+        else:
+            print(payload)
+        return 0
+
+    return 1
 
 
 def _cmd_ingest(args: argparse.Namespace, mem: LoreMemory) -> int:
@@ -499,6 +562,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_ingest_wiki(args, mem)
         if cmd == "ingest":
             return _cmd_ingest(args, mem)
+        if cmd == "darwin":
+            return _cmd_darwin(args, mem)
 
     parser.print_help()
     return 1

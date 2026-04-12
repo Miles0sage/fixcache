@@ -312,9 +312,16 @@ def extract_fix_recipes(
 
 def _store_recipe(store: Any, recipe: FixRecipe) -> str:
     """
-    Insert a FixRecipe into darwin_journal + darwin_patterns + memories.
+    Insert a FixRecipe into darwin_journal + darwin_patterns + memories
+    + upsert into the fingerprints table for Darwin Replay efficacy.
     Mirrors handle_lore_fix transaction semantics.
     """
+    from .darwin_replay import upsert_fingerprint
+    from .fingerprint import compute_fingerprint
+
+    fp = compute_fingerprint(recipe.error_signature)
+    upsert_fingerprint(store, recipe.error_signature)
+
     now = time.time()
     recipe_id = str(uuid.uuid4())
     pattern_id = str(uuid.uuid4())
@@ -326,6 +333,9 @@ def _store_recipe(store: Any, recipe: FixRecipe) -> str:
             "source": "claude-code-ingest",
             "source_file": recipe.source_file,
             "transcript_line": recipe.transcript_line,
+            "fingerprint_hash": fp.hash,
+            "fingerprint_error_type": fp.error_type,
+            "fingerprint_ecosystem": fp.ecosystem,
         }
     )
     description = f"Fix for: {recipe.error_signature[:120]}"

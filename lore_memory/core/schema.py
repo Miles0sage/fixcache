@@ -7,7 +7,7 @@ from __future__ import annotations
 import sqlite3
 
 # Schema version — bump when DDL changes
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # All CREATE statements in dependency order
 _DDL: list[str] = [
@@ -177,6 +177,27 @@ _DDL: list[str] = [
         timestamp REAL
     )
     """,
+    # Darwin fingerprints — the moat.
+    # Normalized failure signatures with cross-repo aggregated efficacy.
+    # Each row is one canonical failure class; darwin_patterns link back
+    # via pattern.metadata.fingerprint_hash for efficacy rollup.
+    """
+    CREATE TABLE IF NOT EXISTS fingerprints (
+        hash TEXT PRIMARY KEY,
+        error_type TEXT NOT NULL,
+        ecosystem TEXT NOT NULL,
+        tool TEXT NOT NULL,
+        essence TEXT NOT NULL,
+        top_frame TEXT,
+        total_seen INTEGER DEFAULT 1,
+        total_success INTEGER DEFAULT 0,
+        total_failure INTEGER DEFAULT 0,
+        first_seen REAL NOT NULL,
+        last_seen REAL NOT NULL,
+        best_pattern_id TEXT,
+        metadata TEXT
+    )
+    """,
 ]
 
 # Indexes for performance
@@ -196,6 +217,10 @@ _INDEXES: list[str] = [
     "CREATE INDEX IF NOT EXISTS idx_access_patterns_entity ON access_patterns(entity)",
     "CREATE INDEX IF NOT EXISTS idx_access_patterns_tool ON access_patterns(tool_used)",
     "CREATE INDEX IF NOT EXISTS idx_access_patterns_timestamp ON access_patterns(timestamp)",
+    "CREATE INDEX IF NOT EXISTS idx_fingerprints_error_type ON fingerprints(error_type)",
+    "CREATE INDEX IF NOT EXISTS idx_fingerprints_ecosystem ON fingerprints(ecosystem)",
+    "CREATE INDEX IF NOT EXISTS idx_fingerprints_last_seen ON fingerprints(last_seen)",
+    "CREATE INDEX IF NOT EXISTS idx_fingerprints_total_seen ON fingerprints(total_seen)",
 ]
 
 
@@ -223,7 +248,10 @@ def apply_schema(conn: sqlite3.Connection) -> None:
             (SCHEMA_VERSION, _time.time()),
         )
     elif current_version < SCHEMA_VERSION:
-        # Migration v1 → v2: access_patterns table (already created above via IF NOT EXISTS)
+        # Migrations are idempotent — the CREATE TABLE IF NOT EXISTS
+        # and CREATE INDEX IF NOT EXISTS statements above handle:
+        #   v1 → v2: access_patterns table
+        #   v2 → v3: fingerprints table + indexes (Darwin Replay moat)
         conn.execute(
             "INSERT INTO _schema_version(version, applied_at) VALUES (?, ?)",
             (SCHEMA_VERSION, _time.time()),

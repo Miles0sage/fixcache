@@ -31,6 +31,14 @@ from typing import Any
 
 from ..core.store import MemoryStore
 from ..darwin import consolidate, evolve_patterns, log_outcome, update_confidence
+from ..darwin_replay import (
+    classify as darwin_classify,
+    darwin_stats,
+    export_sanitized,
+    record_outcome as replay_record_outcome,
+    upsert_fingerprint,
+)
+from ..fingerprint import compute_fingerprint
 from ..layers.identity import IdentityLayer
 from ..prefetch import generate_briefing, record_access
 from .tools import TOOL_SCHEMAS, TRUST_SCORES, TIME_WINDOWS
@@ -236,7 +244,18 @@ def handle_lore_fix(
         outcome = "success"
 
     steps_json = json.dumps(solution_steps)
-    meta_json = json.dumps({"tags": tags or [], "recipe_id": recipe_id})
+
+    # Compute normalized fingerprint for Darwin Replay efficacy tracking
+    fp = compute_fingerprint(error_signature)
+    meta_json = json.dumps(
+        {
+            "tags": tags or [],
+            "recipe_id": recipe_id,
+            "fingerprint_hash": fp.hash,
+            "fingerprint_error_type": fp.error_type,
+            "fingerprint_ecosystem": fp.ecosystem,
+        }
+    )
 
     pattern_id = str(uuid.uuid4())
     description = f"Fix for: {error_signature[:120]}"
@@ -245,6 +264,10 @@ def handle_lore_fix(
     mem_content = f"ERROR FIX: {error_signature}\nSOLUTION:\n{steps_text}"
     if tags_str:
         mem_content += f"\nTAGS: {tags_str}"
+
+    # Upsert the fingerprint first so darwin_patterns can link to it.
+    # This is idempotent and cheap; safe to run outside the transaction.
+    upsert_fingerprint(store, error_signature)
 
     # Wrap all inserts in an explicit transaction for atomicity
     store.conn.execute("BEGIN")
@@ -270,10 +293,11 @@ def handle_lore_fix(
         store.conn.execute(
             """
             INSERT INTO darwin_patterns
-                (id, pattern_type, description, rule, frequency, confidence, created_at, last_triggered)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (id, pattern_type, description, rule, frequency, confidence,
+                 created_at, last_triggered, metadata)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (pattern_id, "error_recipe", description, rule, 1, 0.5, now, now),
+            (pattern_id, "error_recipe", description, rule, 1, 0.5, now, now, meta_json),
         )
 
         # Also store in memories for FTS5 fallback
@@ -314,6 +338,9 @@ def handle_lore_fix(
         "steps_count": len(solution_steps),
         "confidence": 0.5,
         "outcome": outcome,
+        "fingerprint_hash": fp.hash,
+        "fingerprint_error_type": fp.error_type,
+        "fingerprint_ecosystem": fp.ecosystem,
     }
 
 
@@ -593,6 +620,20 @@ def handle_lore_rate_fix(pattern_id: str, outcome: str) -> dict[str, Any]:
     if not result.get("success"):
         return result
 
+    # Roll up outcome into fingerprint aggregates (Darwin Replay efficacy).
+    # Reads the pattern's stored fingerprint_hash from metadata if present.
+    pat_row = store.conn.execute(
+        "SELECT metadata FROM darwin_patterns WHERE id = ?", (pattern_id,)
+    ).fetchone()
+    if pat_row and pat_row[0]:
+        try:
+            meta = json.loads(pat_row[0])
+            fp_hash = meta.get("fingerprint_hash")
+            if fp_hash:
+                replay_record_outcome(store, fp_hash, outcome)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
     # Log to darwin_journal for audit trail
     journal_id = str(uuid.uuid4())
     now = time.time()
@@ -654,6 +695,19 @@ def handle_lore_report_outcome(
     journal_id = log_outcome(store, pattern_id, outcome, context)
     confidence_result = update_confidence(store, pattern_id, outcome)
 
+    # Roll up outcome into fingerprint aggregates (Darwin Replay efficacy)
+    pat_row = store.conn.execute(
+        "SELECT metadata FROM darwin_patterns WHERE id = ?", (pattern_id,)
+    ).fetchone()
+    if pat_row and pat_row[0]:
+        try:
+            meta = json.loads(pat_row[0])
+            fp_hash = meta.get("fingerprint_hash")
+            if fp_hash:
+                replay_record_outcome(store, fp_hash, outcome)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
     return {
         "success": True,
         "pattern_id": pattern_id,
@@ -699,6 +753,44 @@ def handle_lore_evolve(
 
 # ── Prefetcher tool handler ───────────────────────────────────────────────────
 
+def handle_lore_darwin_classify(
+    error_text: str,
+    top_k: int = 3,
+) -> dict[str, Any]:
+    """
+    Darwin Replay: given an error, return the normalized fingerprint +
+    ranked fix-recipes with measured success rates.
+    """
+    if not error_text or not isinstance(error_text, str):
+        return {"success": False, "error": "error_text must be a non-empty string"}
+    if not isinstance(top_k, int) or top_k < 1:
+        return {"success": False, "error": "top_k must be a positive integer"}
+    store = _get_store()
+    return darwin_classify(store, error_text, top_k=top_k)
+
+
+def handle_lore_darwin_stats() -> dict[str, Any]:
+    """Corpus-wide Darwin fingerprint stats (the dashboard of the moat)."""
+    store = _get_store()
+    return darwin_stats(store)
+
+
+def handle_lore_darwin_export(min_total_seen: int = 1) -> dict[str, Any]:
+    """
+    Export the fingerprint corpus in a sanitized, shareable form.
+    Safe to publish: already-redacted fingerprints + aggregates only.
+    """
+    if not isinstance(min_total_seen, int) or min_total_seen < 1:
+        min_total_seen = 1
+    store = _get_store()
+    corpus = export_sanitized(store, min_total_seen=min_total_seen)
+    return {
+        "count": len(corpus),
+        "min_total_seen": min_total_seen,
+        "fingerprints": corpus,
+    }
+
+
 def handle_lore_briefing(
     entity: str | None = None,
     tool_used: str | None = None,
@@ -738,6 +830,9 @@ _HANDLERS = {
     "lore_evolve": handle_lore_evolve,
     "lore_knowledge": _handle_lore_knowledge,
     "lore_briefing": handle_lore_briefing,
+    "lore_darwin_classify": handle_lore_darwin_classify,
+    "lore_darwin_stats": handle_lore_darwin_stats,
+    "lore_darwin_export": handle_lore_darwin_export,
 }
 
 TOOLS: dict[str, dict] = {
