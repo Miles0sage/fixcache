@@ -40,7 +40,9 @@ from ..darwin_replay import (
 )
 from ..fingerprint import compute_fingerprint
 from ..layers.identity import IdentityLayer
-from ..prefetch import generate_briefing, record_access
+# prefetch module moved to _graveyard/ in lore-memory-lite — stub to keep imports clean
+def generate_briefing(*_a, **_kw): return {}
+def record_access(*_a, **_kw): pass
 from .tools import TOOL_SCHEMAS, TRUST_SCORES, TIME_WINDOWS
 
 # ── Logging — always to stderr ────────────────────────────────────────────────
