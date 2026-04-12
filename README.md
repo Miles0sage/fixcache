@@ -1,22 +1,56 @@
 # lore-memory
 
-**The `git init` for AI memory.**
+**The Failure Recovery Layer for AI coding agents.**
 
-Teach your AI once. It remembers forever. Works with every coding agent.
+Your agents keep hitting the same errors. Lore catches every failure, learns the fix, and surfaces it the next time any agent on any repo hits the same wall.
 
 [![PyPI](https://img.shields.io/pypi/v/lore-memory)](https://pypi.org/project/lore-memory/)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/Miles0sage/lore-memory/actions)
+[![Tests](https://img.shields.io/badge/tests-427%20passing-brightgreen)](https://github.com/Miles0sage/lore-memory/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/pypi/pyversions/lore-memory)](https://pypi.org/project/lore-memory/)
 
-## Why
+## The 30-second demo
 
-Your AI forgets everything between sessions. You repeat yourself. It makes the same mistakes. lore-memory fixes that.
+```bash
+# 1. Teach it a fix
+$ lore-memory fix "ModuleNotFoundError: No module named 'scikit-learn'" \
+    --steps "pip install scikit-learn" "restart kernel"
+Stored fix: recipe_id=...
+  fingerprint : 714b7ee1df9f3bec (ModuleNotFoundError/python)
 
-- **One memory, every agent** — drop-in MCP server works with Claude Code, Cursor, Windsurf, Codex, and any MCP-compatible tool
-- **Error recipes** — fix a bug once, never fix it again. Pattern-matches stderr automatically with regex + BM25 fallback
-- **Memory immune system** — SHA-256 provenance hashes + trust scoring (user=1.0, agent=0.8, mined=0.6, fleet=0.5) prevent hallucinated facts from poisoning your memory
-- **Zero cost, fully local** — single SQLite file, WAL mode, FTS5 full-text search. No cloud. No API keys. 1 dependency (`pyyaml`)
+# 2. Run any command — lore-memory watches stderr
+$ lore-memory watch --cmd "pytest tests/"
+Traceback (most recent call last):
+ModuleNotFoundError: No module named 'scikit-learn'
+
+💡 lore-memory: matched fingerprint 714b7ee1df9f3bec
+   seen 2x — unrated so far
+
+  [1] Fix for: ModuleNotFoundError: No module named 'scikit-learn'  (conf=0.5, freq=1)
+      → pip install scikit-learn
+      → restart kernel
+```
+
+**That's the product.** Every failure becomes a fingerprint. Every fix gets Bayesian efficacy tracking. Every agent on every repo learns from every other agent's mistakes.
+
+## Why it's different
+
+- **Darwin Replay + Fingerprints** — normalized failure signatures with measured fix efficacy. `scikit-learn`, `pandas`, `numpy` all collapse to the same `python/ModuleNotFoundError` fingerprint, so fixes compound across repos.
+- **MCP-first, framework-agnostic** — works with Claude Code, Cursor, Windsurf, Codex, and any MCP-compatible tool. No runtime lock-in.
+- **Privacy-preserving by construction** — absolute paths, hex IDs, line numbers, quoted literals all redacted at fingerprint time. Safe to share corpus via `lore-memory darwin export`.
+- **Local-first, zero cloud** — single SQLite file, WAL mode, FTS5 BM25 search. No cloud. No API keys. One dependency (`pyyaml`).
+- **Bayesian efficacy** — every applied recipe updates alpha/beta counts. Failing recipes decay. Successful ones rise. Darwin Journal logs every outcome for audit.
+- **Memory immune system** — SHA-256 provenance + trust hierarchy (user=1.0, agent=0.8, mined=0.6, fleet=0.5) prevents hallucinated facts from poisoning your memory.
+
+## What's inside (v0.3.0)
+
+- **16 MCP tools** — remember, recall, fix, match_procedure, teach, list, forget, stats, evolve, rate_fix, report_outcome, briefing, knowledge, **darwin_classify, darwin_stats, darwin_export**
+- **3 CLI verbs worth remembering**: `lore-memory fix`, `lore-memory watch`, `lore-memory darwin classify`
+- **Darwin Fingerprints** — cross-repo aggregated efficacy, exportable as sanitized corpus
+- **Claude Code transcript ingest** — `lore-memory ingest last-session` auto-captures error→fix recipes from your session history
+- **Sync to every agent** — `lore-memory sync` writes CLAUDE.md, .cursorrules, .windsurfrules, AGENTS.md
+- **Doctor** — `lore-memory doctor --fix` auto-repairs FTS indexes, WAL mode, schema drift
+- **427 tests** passing in 1.8s
 
 ## Install
 

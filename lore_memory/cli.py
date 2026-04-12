@@ -131,6 +131,52 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional extra tags to apply to all ingested memories",
     )
 
+    # watch — run a command; on failure, classify and surface matching recipes
+    watch = sub.add_parser(
+        "watch",
+        help="Run a command and surface matching fix recipes on failure",
+    )
+    watch.add_argument(
+        "--cmd",
+        dest="watch_cmd",
+        help="Shell command string to run (e.g. 'pytest tests/')",
+    )
+    watch.add_argument(
+        "watch_argv",
+        nargs="*",
+        help="Command tokens (alternative to --cmd)",
+    )
+    watch.add_argument(
+        "--json",
+        dest="watch_json",
+        action="store_true",
+        help="Emit machine-readable JSON instead of human-readable output",
+    )
+    watch.add_argument(
+        "--suggest-only",
+        action="store_true",
+        help="Show suggestions but do not interrupt or prompt",
+    )
+
+    # activate — stateless hook entry point: classify an error, return recipes
+    act = sub.add_parser(
+        "activate",
+        help="Hook entry point: classify stderr/error and emit top recipes",
+    )
+    act.add_argument(
+        "error_text",
+        nargs="?",
+        default="-",
+        help="Error text or '-' to read from stdin",
+    )
+    act.add_argument(
+        "--top-k", type=int, default=3, help="Max recipes to return"
+    )
+    act.add_argument(
+        "--json", dest="activate_json", action="store_true",
+        help="Emit machine-readable JSON",
+    )
+
     # darwin — Darwin Replay: classify/stats/export of failure fingerprints
     darwin = sub.add_parser("darwin", help="Darwin Replay: fingerprints + efficacy")
     darwin_sub = darwin.add_subparsers(dest="darwin_command", required=True)
@@ -382,6 +428,40 @@ def _cmd_sync(args: argparse.Namespace, mem: LoreMemory) -> int:
     return 0
 
 
+def _cmd_watch(args: argparse.Namespace, mem: LoreMemory) -> int:
+    import shlex
+    from .watch import watch_command
+
+    cmd_str = getattr(args, "watch_cmd", None)
+    if cmd_str:
+        cmd = shlex.split(cmd_str)
+    else:
+        cmd = list(getattr(args, "watch_argv", None) or [])
+        if cmd and cmd[0] == "--":
+            cmd = cmd[1:]
+
+    return watch_command(
+        mem.store,
+        cmd,
+        suggest_only=bool(getattr(args, "suggest_only", False)),
+        json_output=bool(getattr(args, "watch_json", False)),
+    )
+
+
+def _cmd_activate(args: argparse.Namespace, mem: LoreMemory) -> int:
+    from .watch import activate
+
+    text = args.error_text
+    if text == "-":
+        text = sys.stdin.read()
+    result = activate(mem.store, text, top_k=args.top_k)
+    if getattr(args, "activate_json", False):
+        print(json.dumps(result, indent=2, default=str))
+    else:
+        print(result["human_output"] or "No recipes found.")
+    return 0 if result["suggestions"] else 3
+
+
 def _cmd_darwin(args: argparse.Namespace, mem: LoreMemory) -> int:
     from .darwin_replay import classify, darwin_stats, export_sanitized
 
@@ -564,6 +644,10 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_ingest(args, mem)
         if cmd == "darwin":
             return _cmd_darwin(args, mem)
+        if cmd == "watch":
+            return _cmd_watch(args, mem)
+        if cmd == "activate":
+            return _cmd_activate(args, mem)
 
     parser.print_help()
     return 1
