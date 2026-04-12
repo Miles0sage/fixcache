@@ -3,16 +3,16 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lore-memory"
-version = "0.3.2"
-description = "Memory that learns from forgetting. A 1-dependency Python library that gives any LLM persistent memory with auto-evolving knowledge graphs, temporal reasoning, and fleet-wide failure learning."
+name = "fixcache"
+version = "0.4.0"
+description = "The procedural memory layer for AI coding agents. Fingerprints stderr, matches to learned fix recipes, tracks efficacy. Zero dependencies, local-first, MCP-native."
 requires-python = ">=3.11"
 license = "MIT"
 authors = [
     {name = "Miles Sage"},
 ]
 readme = "README.md"
-keywords = ["ai", "memory", "mcp", "claude", "agent", "llm", "sqlite", "knowledge-graph", "rag"]
+keywords = ["ai", "memory", "mcp", "claude", "agent", "llm", "sqlite", "fix-cache", "error-recovery", "procedural-memory", "cursor", "windsurf", "codex", "claude-code"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -30,10 +30,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Miles0sage/lore-memory"
-Repository = "https://github.com/Miles0sage/lore-memory"
-Issues = "https://github.com/Miles0sage/lore-memory/issues"
-Changelog = "https://github.com/Miles0sage/lore-memory/releases"
+Homepage = "https://github.com/Miles0sage/fixcache"
+Repository = "https://github.com/Miles0sage/fixcache"
+Issues = "https://github.com/Miles0sage/fixcache/issues"
+Changelog = "https://github.com/Miles0sage/fixcache/releases"
 
 [project.optional-dependencies]
 neural = [
@@ -48,6 +48,9 @@ dev = [
 ]
 
 [project.scripts]
+fixcache = "lore_memory.cli:main"
+fixcache-mcp = "lore_memory.mcp.server:main"
+# transitional aliases (v0.4.x) — will be removed in v0.5.0
 lore-memory = "lore_memory.cli:main"
 lore-memory-mcp = "lore_memory.mcp.server:main"
 
