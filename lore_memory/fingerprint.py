@@ -312,6 +312,12 @@ _TARGETED_REDACTORS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"glpat-[A-Za-z0-9_-]{20,}"), "<gitlab_token>"),
     (re.compile(r"AKIA[A-Z0-9]{16}"), "<aws_access_key>"),
     (re.compile(r"(?<![@\w])[\w.+-]+@[\w-]+\.[\w.-]+"), "<email>"),
+    # JWT tokens (bare, unquoted) — eyJ header.payload.signature
+    (re.compile(r"eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"), "<jwt_token>"),
+    # Bearer / Authorization header tokens
+    (re.compile(r"Bearer\s+[A-Za-z0-9._~+/-]{20,}"), "Bearer <token>"),
+    # Generic API key patterns: key=value, token=value, secret=value
+    (re.compile(r"(?i)(?:api[_-]?key|auth[_-]?token|access[_-]?token|secret)[=:\s]+\S{8,}"), "<api_key>"),
     # ── Relative paths (./foo.go, ./src/main.rs, ./foo.go:12:9) ────────────
     (re.compile(r"\./[\w./-]+\.[a-z]+(?::\d+)?(?::\d+)?"), "./<file>"),
 ]
