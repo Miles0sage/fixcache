@@ -156,6 +156,15 @@ _TARGETED_REDACTORS: list[tuple[re.Pattern[str], str]] = [
     # Dotted method chains like "app.listen is not a function" — match [\w.]+ not just \w+
     (re.compile(r"[\w.][\w.]{0,99} is not a function\b"), "<name> is not a function"),
     (re.compile(r"\b\w+ is not defined\b"), "<name> is not defined"),
+    # ── UUIDs / GUIDs — must run before _HEX_ID to avoid partial matches ───
+    (
+        re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE),
+        "<uuid>",
+    ),
+    # ── Retry/attempt/epoch counters (small numbers not caught by _NUMBER) ──
+    # e.g. "CUDA error at address 0x... (attempt 47)", "epoch 3", "step 12"
+    (re.compile(r"\b(?:attempt|retry|retries|epoch|step|iteration|iter)\s+\d+\b", re.IGNORECASE), "<counter>"),
+    (re.compile(r"\(attempt \d+(?:\s+of\s+\d+)?\)", re.IGNORECASE), "(attempt <n>)"),
     # ── Go ──────────────────────────────────────────────────────────────────
     (re.compile(r"undefined: \w+"), "undefined: <name>"),
     # ── Rust ────────────────────────────────────────────────────────────────
