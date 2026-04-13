@@ -1,0 +1,498 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# fixcache memory pack v1
+# Format: fixcache-pack/1.0
+#
+# Python Starter Pack — 20 most common Python/AI agent errors with proven fixes.
+#
+#     fixcache pack import ./packs/python-starter.toml
+# ─────────────────────────────────────────────────────────────────────────────
+
+[pack]
+name        = "python-starter"
+version     = "1.0.0"
+description = "20 most common Python/AI agent errors with proven fixes — imports, env, DB, ML, auth, and more"
+author      = "Miles Sage <miles@fixcache.dev>"
+license     = "MIT"
+homepage    = "https://github.com/fixcache-registry/python-starter"
+
+ecosystem_tags = ["python", "pip", "pytest", "docker", "fastapi", "pydantic", "sqlalchemy", "pytorch", "redis", "postgres"]
+keywords       = ["modulenotfounderror", "importerror", "attributeerror", "connectionrefused", "cuda", "jwt", "ssl", "recursionerror"]
+
+fixcache_min_version = "0.4.0"
+python_min_version   = "3.9"
+
+corpus_source   = "community"
+corpus_snapshot = "2026-04-14"
+
+[pack.stats]
+total_installs   = 0
+total_seen       = 0
+total_success    = 0
+total_failure    = 0
+efficacy         = 0.0
+last_updated     = "2026-04-14T00:00:00Z"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RECIPES
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "module-not-found"
+error_signature = "ModuleNotFoundError: No module named"
+tags            = ["python", "import", "pip", "venv"]
+outcome         = "success"
+fingerprint     = "a3f8c21d9e4b7601"
+
+solution_steps = [
+    "Run: pip install <package-name>",
+    "If inside a venv, verify it is activated: source .venv/bin/activate",
+    "If using pyproject.toml or setup.py: pip install -e '.[dev]'",
+    "Check the correct package name — PyPI name may differ from import name (e.g. 'Pillow' vs 'PIL')",
+    "Verify the venv python is in use: which python",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "import-error-cannot-import-name"
+error_signature = "ImportError: cannot import name"
+tags            = ["python", "import", "version", "upgrade"]
+outcome         = "success"
+fingerprint     = "b4e91c3a0f752d12"
+
+solution_steps = [
+    "The symbol was added or renamed in a newer version — check the changelog: pip show <package>",
+    "Upgrade the package: pip install --upgrade <package>",
+    "Pin to a compatible version if upgrading breaks other things: pip install '<package>==X.Y.Z'",
+    "Check the import path in the package's docs — the module may have been reorganised",
+    "Search for the symbol in the installed package: python -c 'import <pkg>; help(<pkg>)'",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "attribute-error-nonetype"
+error_signature = "AttributeError: 'NoneType' object has no attribute"
+tags            = ["python", "types", "none", "nullcheck"]
+outcome         = "success"
+fingerprint     = "c5d20b8e1a963f74"
+
+solution_steps = [
+    "Add a None guard before the attribute access: if result is not None: ...",
+    "Use assert to fail fast with a clear message: assert result is not None, 'Expected <Type>, got None'",
+    "Trace back to where the value is assigned — check for missing return statements in the producing function",
+    "If from a dict lookup, use: obj = d.get('key') or default_obj",
+    "Add a print/log just before the failing line to inspect the actual value",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "connection-refused-postgres"
+error_signature = "ConnectionRefusedError.*5432|could not connect to server.*5432|Connection refused.*5432"
+tags            = ["python", "postgres", "database", "service"]
+outcome         = "success"
+fingerprint     = "d6f31c9b2e074a85"
+
+solution_steps = [
+    "Start PostgreSQL: sudo service postgresql start",
+    "Verify it is running: pg_isready -h localhost -p 5432",
+    "Check status: sudo service postgresql status",
+    "If using Docker: docker ps | grep postgres  — start container if stopped",
+    "Confirm DATABASE_URL or host/port settings in your .env match the running instance",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "connection-refused-redis"
+error_signature = "ConnectionRefusedError.*6379|Error 111 connecting.*6379|Redis.*Connection refused"
+tags            = ["python", "redis", "cache", "service"]
+outcome         = "success"
+fingerprint     = "e7a42d0c3f185b96"
+
+solution_steps = [
+    "Start Redis: sudo service redis start",
+    "Verify it is running: redis-cli ping  (expect PONG)",
+    "Check status: sudo service redis status",
+    "If using Docker: docker ps | grep redis  — start container if stopped",
+    "Confirm REDIS_URL or host/port settings in your .env match the running instance",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "filenotfound-dotenv"
+error_signature = "FileNotFoundError.*\\.env|No such file.*\\.env"
+tags            = ["python", "env", "config", "dotenv"]
+outcome         = "success"
+fingerprint     = "f8b53e1d4a296c07"
+
+solution_steps = [
+    "Copy the example env file: cp .env.example .env",
+    "Fill in all required values in .env (API keys, DB URLs, secrets)",
+    "Verify the file exists: ls -la .env",
+    "If .env.example does not exist, check the README for required environment variables",
+    "Ensure python-dotenv is installed and load_dotenv() is called at startup",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "permission-error-chmod"
+error_signature = "PermissionError: \\[Errno 13\\]|Permission denied"
+tags            = ["python", "permissions", "chmod", "filesystem"]
+outcome         = "success"
+fingerprint     = "a9c64f2e5b307d18"
+
+solution_steps = [
+    "Make the file executable: chmod +x <file>",
+    "If writing to a directory: check ownership with ls -la and fix with chown or sudo",
+    "For scripts run by a service, ensure the service user has access to the path",
+    "If inside Docker: check volume mount permissions and COPY/ADD file modes in Dockerfile",
+    "Avoid running as root unless required; prefer fixing permissions instead",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "syntax-error-unexpected-eof"
+error_signature = "SyntaxError: unexpected EOF while parsing|SyntaxError: unexpected character after line continuation|SyntaxError: EOF"
+tags            = ["python", "syntax", "brackets", "quotes"]
+outcome         = "success"
+fingerprint     = "b0d75a3f6c418e29"
+
+solution_steps = [
+    "Check for unclosed brackets, parentheses, or square brackets — use an editor that highlights matching pairs",
+    "Check for unclosed string literals (missing closing quote)",
+    "Run: python -m py_compile <file.py>  to get the exact line number",
+    "Use a linter: ruff check <file.py>  or flake8 <file.py>",
+    "Check multi-line strings and triple-quoted blocks are properly closed",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "indentation-error"
+error_signature = "IndentationError|TabError: inconsistent use of tabs"
+tags            = ["python", "syntax", "indentation", "formatting"]
+outcome         = "success"
+fingerprint     = "c1e86b4a7d529f30"
+
+solution_steps = [
+    "Fix mixed tabs/spaces with autopep8: autopep8 --in-place <file.py>",
+    "Or use ruff: ruff format <file.py>",
+    "Convert tabs to spaces manually: expand -t 4 <file.py> > fixed.py && mv fixed.py <file.py>",
+    "In VS Code: Cmd+Shift+P → 'Convert Indentation to Spaces'",
+    "Set your editor to always use 4 spaces for Python (never tabs)",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "key-error-dict"
+error_signature = "KeyError:"
+tags            = ["python", "dict", "keyerror", "data"]
+outcome         = "success"
+fingerprint     = "d2f97c5b8e630a41"
+
+solution_steps = [
+    "Replace dict[key] with dict.get(key, default) to avoid KeyError",
+    "Or guard with: if key in d: value = d[key]",
+    "Print the dict keys before access: print(list(d.keys())) to debug",
+    "If the dict comes from JSON/API, the key may be missing or named differently — add defensive checks",
+    "Use collections.defaultdict if you want automatic default values",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "pydantic-validation-error"
+error_signature = "pydantic.error_wrappers.ValidationError|pydantic_core._pydantic_core.ValidationError|ValidationError.*field"
+tags            = ["python", "pydantic", "validation", "types"]
+outcome         = "success"
+fingerprint     = "e3a08d6c9f741b52"
+
+solution_steps = [
+    "Check that the field types in your Pydantic model match the data being passed in",
+    "Print the raw data before constructing the model: print(data) to inspect actual types",
+    "Use model.model_validate(data) (v2) or Model(**data) and read the ValidationError detail",
+    "For optional fields, annotate with Optional[<type>] or <type> | None and add default=None",
+    "If migrating from Pydantic v1 to v2, check the migration guide for renamed validators",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "sqlalchemy-detached-instance"
+error_signature = "sqlalchemy.orm.exc.DetachedInstanceError|DetachedInstanceError: Instance.*is not bound"
+tags            = ["python", "sqlalchemy", "orm", "database"]
+outcome         = "success"
+fingerprint     = "f4b19e7d0a852c63"
+
+solution_steps = [
+    "Call db.refresh(obj) before accessing lazy-loaded attributes outside the session",
+    "Use eager loading to load related objects within the session: options(joinedload(Model.relation))",
+    "Keep the SQLAlchemy session open for the lifetime of the request (use a context manager or FastAPI dependency)",
+    "Convert ORM objects to dicts/Pydantic models inside the session before returning them",
+    "If using FastAPI, ensure the db session dependency yields and closes after the response",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "cuda-out-of-memory"
+error_signature = "RuntimeError: CUDA out of memory|torch.cuda.OutOfMemoryError|CUDA error: out of memory"
+tags            = ["python", "pytorch", "cuda", "gpu", "ml"]
+outcome         = "success"
+fingerprint     = "a5c20f8e1b963d74"
+
+solution_steps = [
+    "Reduce batch size by half and retry",
+    "Free unused GPU memory: torch.cuda.empty_cache()",
+    "Move intermediate tensors to CPU when not needed: tensor.cpu()",
+    "Use gradient checkpointing to trade compute for memory: model.gradient_checkpointing_enable()",
+    "Use mixed precision training: torch.cuda.amp.autocast() to halve memory usage",
+    "Check current GPU usage: nvidia-smi",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "requests-connection-error"
+error_signature = "requests.exceptions.ConnectionError|HTTPSConnectionPool.*Max retries exceeded|requests.exceptions.ConnectTimeout"
+tags            = ["python", "requests", "network", "http"]
+outcome         = "success"
+fingerprint     = "b6d31a9f2c074e85"
+
+solution_steps = [
+    "Verify the URL is correct and reachable: curl -v <url>",
+    "Ensure the scheme is correct — use http:// or https:// explicitly",
+    "Check network connectivity and firewall rules",
+    "Add a timeout to avoid hanging: requests.get(url, timeout=10)",
+    "If behind a proxy, set: proxies={'http': ..., 'https': ...}",
+    "For retries, use requests.adapters.HTTPAdapter with a Retry policy",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "jwt-decode-error"
+error_signature = "jwt.exceptions.ExpiredSignatureError|jwt.exceptions.DecodeError|Token.*expired|invalid signature"
+tags            = ["python", "jwt", "auth", "token"]
+outcome         = "success"
+fingerprint     = "c7e42b0d3f185a96"
+
+solution_steps = [
+    "Token is expired — refresh it using your refresh token endpoint and retry",
+    "If testing locally, generate a new token: the exp claim may be too short",
+    "Check server clock skew — JWT validation is time-sensitive; ensure clocks are in sync (NTP)",
+    "Verify the secret/key used to decode matches the one used to sign",
+    "Use jwt.decode(token, key, algorithms=['HS256'], options={'verify_exp': False}) only for debugging",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "docker-connection-refused"
+error_signature = "Error response from daemon|Cannot connect to the Docker daemon|docker.*connection refused"
+tags            = ["python", "docker", "container", "devops"]
+outcome         = "success"
+fingerprint     = "d8f53c1e4a296b07"
+
+solution_steps = [
+    "Check if the container is running: docker ps",
+    "Start a stopped container: docker start <container-name>",
+    "Check container logs for crash reason: docker logs <container-name>",
+    "Verify the port mapping: docker inspect <container> | grep HostPort",
+    "If Docker daemon itself is not running: sudo systemctl start docker",
+    "Ensure your user is in the docker group or use sudo: sudo usermod -aG docker $USER",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "pytest-collection-error"
+error_signature = "ERROR collecting|ImportError while importing test|ModuleNotFoundError.*conftest|ERRORS.*collection"
+tags            = ["python", "pytest", "testing", "imports"]
+outcome         = "success"
+fingerprint     = "e9a64d2f5b307c18"
+
+solution_steps = [
+    "Check conftest.py for broken imports — run: python conftest.py to surface the error",
+    "Ensure __init__.py exists in all test directories if using package imports",
+    "Run pytest with -x --tb=short to get the first failure with a clear traceback",
+    "Verify the test file itself has no top-level import errors: python -c 'import tests.test_foo'",
+    "Check PYTHONPATH includes the project root: export PYTHONPATH=. && pytest",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "pip-install-build-error"
+error_signature = "error: legacy-install-failure|Failed building wheel|error: command.*failed with exit code|pip.*build.*error"
+tags            = ["python", "pip", "build", "wheels"]
+outcome         = "success"
+fingerprint     = "f0b75e3a6c418d29"
+
+solution_steps = [
+    "Upgrade pip, setuptools, and wheel first: pip install --upgrade pip setuptools wheel",
+    "Then retry the install",
+    "For C-extension packages, install the system build tools: sudo apt install build-essential python3-dev",
+    "Use a pre-built binary wheel if available: pip install --only-binary :all: <package>",
+    "Try installing a slightly older version that has a pre-built wheel: pip install '<package>==X.Y.Z'",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "ssl-certificate-verify-failed"
+error_signature = "ssl.SSLCertVerificationError|CERTIFICATE_VERIFY_FAILED|SSL: CERTIFICATE_VERIFY_FAILED"
+tags            = ["python", "ssl", "https", "certificates"]
+outcome         = "success"
+fingerprint     = "a1c86b4e7d529e30"
+
+solution_steps = [
+    "Install or upgrade certifi: pip install --upgrade certifi",
+    "Set the CA bundle env var: export REQUESTS_CA_BUNDLE=$(python -m certifi)",
+    "On macOS after Python install, run: /Applications/Python*/Install\\ Certificates.command",
+    "If behind a corporate proxy with custom CA, add the CA cert: export SSL_CERT_FILE=/path/to/ca.pem",
+    "As a last resort for internal/dev environments only: requests.get(url, verify=False)  — NEVER in production",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "recursion-error-max-depth"
+error_signature = "RecursionError: maximum recursion depth exceeded"
+tags            = ["python", "recursion", "circular-import", "stack"]
+outcome         = "success"
+fingerprint     = "b2d97f5c8e630a41"
+
+solution_steps = [
+    "Check for circular imports: module A imports B which imports A — break the cycle by restructuring or using lazy imports",
+    "Check recursive functions for a missing or unreachable base case",
+    "Add print/logging at the top of the recursive function to trace the call chain",
+    "As a temporary diagnostic, increase the limit: import sys; sys.setrecursionlimit(2000)",
+    "Refactor deep recursion to an iterative approach using an explicit stack (list)",
+]
+
+[recipe.darwin_stats]
+total_seen    = 0
+total_success = 0
+total_failure = 0
+efficacy      = 0.0

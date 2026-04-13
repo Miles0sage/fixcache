@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fixcache"
-version = "0.4.5"
+version = "0.4.6"
 description = "The procedural memory layer for AI coding agents. Fingerprints stderr, matches to learned fix recipes, tracks efficacy. Zero dependencies, local-first, MCP-native."
 requires-python = ">=3.11"
 license = "MIT"
@@ -50,9 +50,7 @@ dev = [
 [project.scripts]
 fixcache = "lore_memory.cli:main"
 fixcache-mcp = "lore_memory.mcp.server:main"
-# transitional aliases (v0.4.x) — will be removed in v0.5.0
-lore-memory = "lore_memory.cli:main"
-lore-memory-mcp = "lore_memory.mcp.server:main"
+# lore-memory aliases removed in v0.4.6 — use fixcache and fixcache-mcp
 
 [tool.setuptools.packages.find]
 where = ["."]

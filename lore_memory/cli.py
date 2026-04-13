@@ -336,14 +336,27 @@ def _cmd_darwin(args: argparse.Namespace, mem: LoreMemory) -> int:
 
     if sub_cmd == "report":
         from .darwin import update_confidence
+        # Accept either a darwin_patterns UUID or a raw fingerprint hash.
+        # The CLI exposes fingerprint hashes (from `activate` output) but
+        # darwin report historically required the internal pattern UUID —
+        # users had no way to get that from the documented workflow.
         pat_row = mem.store.conn.execute(
-            "SELECT metadata FROM darwin_patterns WHERE id = ?", (args.pattern_id,)
+            "SELECT id, metadata FROM darwin_patterns WHERE id = ?", (args.pattern_id,)
         ).fetchone()
         if pat_row is None:
-            print(f"Error: unknown pattern_id: {args.pattern_id}", file=sys.stderr)
-            return 1
+            # Try lookup by fingerprint_hash in metadata
+            pat_row_by_fp = mem.store.conn.execute(
+                "SELECT id, metadata FROM darwin_patterns WHERE json_extract(metadata, '$.fingerprint_hash') = ? LIMIT 1",
+                (args.pattern_id,),
+            ).fetchone()
+            if pat_row_by_fp:
+                pat_row = pat_row_by_fp
+                args.pattern_id = pat_row_by_fp[0]  # resolve to real UUID
+            else:
+                print(f"Error: unknown pattern_id or fingerprint hash: {args.pattern_id}", file=sys.stderr)
+                return 1
         try:
-            pat_meta = json.loads(pat_row[0]) if pat_row[0] else {}
+            pat_meta = json.loads(pat_row[1]) if pat_row[1] else {}
             fp_hash = pat_meta.get("fingerprint_hash")
         except (json.JSONDecodeError, TypeError):
             fp_hash = None

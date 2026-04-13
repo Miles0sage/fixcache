@@ -326,11 +326,14 @@ _TARGETED_REDACTORS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"AKIA[A-Z0-9]{16}"), "<aws_access_key>"),
     (re.compile(r"(?<![@\w])[\w.+-]+@[\w-]+\.[\w.-]+"), "<email>"),
     # JWT tokens (bare, unquoted) — eyJ header.payload.signature
-    (re.compile(r"eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"), "<jwt_token>"),
+    # Use {10,} not {20,}: standard JWT headers are ~20 chars total so {20,}
+    # on the post-eyJ portion rejects valid short tokens.
+    (re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"), "<jwt_token>"),
     # Bearer / Authorization header tokens
     (re.compile(r"Bearer\s+[A-Za-z0-9._~+/-]{20,}"), "Bearer <token>"),
     # Generic API key patterns: key=value, token=value, secret=value
-    (re.compile(r"(?i)(?:api[_-]?key|auth[_-]?token|access[_-]?token|secret)[=:\s]+\S{8,}"), "<api_key>"),
+    # Use {4,} not {8,}: short secrets like "abc123" (6 chars) leaked before.
+    (re.compile(r"(?i)(?:api[_-]?key|auth[_-]?token|access[_-]?token|secret)[=:\s]+\S{4,}"), "<api_key>"),
     # ── Relative paths (./foo.go, ./src/main.rs, ./foo.go:12:9) ────────────
     (re.compile(r"\./[\w./-]+\.[a-z]+(?::\d+)?(?::\d+)?"), "./<file>"),
     # ── Rust compiler error codes ─────────────────────────────────────────
