@@ -18,6 +18,7 @@ import uuid
 from typing import Any
 
 from .core.store import MemoryStore
+from .core.wal import WAL
 
 
 # ── Confidence thresholds ──────────────────────────────────────────────────────
@@ -449,6 +450,9 @@ def consolidate(
             (json.dumps(meta), pat_id),
         )
         deprecated += 1
+
+    # Prune WAL entries older than 7 days to prevent unbounded growth
+    WAL(store.conn).prune(time.time() - 7 * 86400)
 
     store.conn.commit()
 
