@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fixcache"
-version = "0.4.0"
+version = "0.4.3"
 description = "The procedural memory layer for AI coding agents. Fingerprints stderr, matches to learned fix recipes, tracks efficacy. Zero dependencies, local-first, MCP-native."
 requires-python = ">=3.11"
 license = "MIT"
