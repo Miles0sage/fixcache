@@ -371,3 +371,75 @@ class TestFixWatchEndToEndRealSubprocess:
         print(f"[KillshotRedux] Efficacy loop closed. total_success={row[0]}")
 
         _teardown_mcp(monkeypatch)
+
+
+# ── Ecosystem-mismatch fix (httpx dogfood re-verification) ───────────────────
+
+
+class TestEcosystemMismatchFix:
+    """Regression tests for the httpx dogfood finding: bare fix signatures
+    must produce the same ecosystem (and thus same hash) as the full traceback
+    watch sees for the same error class."""
+
+    def test_bare_syntax_error_infers_python_ecosystem(self) -> None:
+        fp = compute_fingerprint("SyntaxError: '(' was never closed")
+        assert fp.ecosystem == "python"
+
+    def test_bare_module_not_found_infers_python(self) -> None:
+        fp = compute_fingerprint("ModuleNotFoundError: No module named 'requests'")
+        assert fp.ecosystem == "python"
+
+    def test_bare_attribute_error_infers_python(self) -> None:
+        fp = compute_fingerprint("AttributeError: 'NoneType' object has no attribute 'split'")
+        assert fp.ecosystem == "python"
+
+    def test_bare_type_error_infers_python(self) -> None:
+        fp = compute_fingerprint("TypeError: unsupported operand type(s) for +: 'int' and 'str'")
+        assert fp.ecosystem == "python"
+
+    def test_bare_signature_and_traceback_produce_same_hash_syntax_error(self) -> None:
+        bare = "SyntaxError: '(' was never closed"
+        traceback = (
+            "Traceback (most recent call last):\n"
+            "  File \"/path/to/file.py\", line 10\n"
+            "    def foo(\n"
+            "           ^\n"
+            "SyntaxError: '(' was never closed"
+        )
+        assert compute_fingerprint(bare).hash == compute_fingerprint(traceback).hash
+
+    def test_bare_signature_and_traceback_produce_same_hash_module_not_found(self) -> None:
+        bare = "ModuleNotFoundError: No module named 'foo'"
+        traceback = (
+            "Traceback (most recent call last):\n"
+            "  File \"/path/to/file.py\", line 1, in <module>\n"
+            "    import foo\n"
+            "ModuleNotFoundError: No module named 'foo'"
+        )
+        assert compute_fingerprint(bare).hash == compute_fingerprint(traceback).hash
+
+    def test_bare_attribute_error_and_traceback_collapse(self) -> None:
+        bare = "AttributeError: 'NoneType' object has no attribute 'split'"
+        traceback = (
+            "Traceback (most recent call last):\n"
+            "  File \"/app/x.py\", line 5, in run\n"
+            "    val.split(',')\n"
+            "AttributeError: 'NoneType' object has no attribute 'split'"
+        )
+        assert compute_fingerprint(bare).hash == compute_fingerprint(traceback).hash
+
+    def test_bare_non_python_error_stays_unknown(self) -> None:
+        """A truly unknown error type (no entry in _ERROR_TYPE_TO_ECOSYSTEM)
+        should still return 'unknown' ecosystem, not force-infer."""
+        fp = compute_fingerprint("CustomDomainError: widget fizzled")
+        assert fp.ecosystem == "unknown"
+
+    def test_node_cannot_find_module_still_routes_to_node(self) -> None:
+        """The text-level cue must still win over error-type inference.
+        Node's 'Cannot find module' error includes an `at ... (file.js:N:M)`
+        stack frame that triggers the node text cue before any type inference."""
+        fp = compute_fingerprint(
+            "Error: Cannot find module 'express'\n"
+            "    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1142:15)"
+        )
+        assert fp.ecosystem == "node"

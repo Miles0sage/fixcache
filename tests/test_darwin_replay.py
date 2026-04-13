@@ -131,11 +131,12 @@ class TestFingerprintsTable:
         ).fetchone()
         assert row is not None
 
-    def test_schema_version_is_3(self, store: MemoryStore) -> None:
+    def test_schema_version_is_current(self, store: MemoryStore) -> None:
+        from lore_memory.core.schema import SCHEMA_VERSION
         row = store.conn.execute(
             "SELECT version FROM _schema_version ORDER BY version DESC LIMIT 1"
         ).fetchone()
-        assert row[0] == 3
+        assert row[0] == SCHEMA_VERSION
 
 
 class TestUpsertFingerprint:

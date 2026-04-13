@@ -7,7 +7,7 @@ from __future__ import annotations
 import sqlite3
 
 # Schema version — bump when DDL changes
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 # All CREATE statements in dependency order
 _DDL: list[str] = [
@@ -252,6 +252,14 @@ def apply_schema(conn: sqlite3.Connection) -> None:
         # and CREATE INDEX IF NOT EXISTS statements above handle:
         #   v1 → v2: access_patterns table
         #   v2 → v3: fingerprints table + indexes (Darwin Replay moat)
+        #   v3 → v4: darwin_patterns.metadata column (ALTER TABLE migration)
+        if current_version < 4:
+            existing_cols = {
+                row[1]
+                for row in conn.execute("PRAGMA table_info(darwin_patterns)").fetchall()
+            }
+            if "metadata" not in existing_cols:
+                conn.execute("ALTER TABLE darwin_patterns ADD COLUMN metadata TEXT")
         conn.execute(
             "INSERT INTO _schema_version(version, applied_at) VALUES (?, ?)",
             (SCHEMA_VERSION, _time.time()),

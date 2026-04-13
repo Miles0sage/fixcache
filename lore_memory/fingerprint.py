@@ -49,6 +49,49 @@ _ERROR_TYPE_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 
 # ── Ecosystem / tool detection ───────────────────────────────────────────────
 
+# Secondary signal: infer ecosystem from error type name when text-level cues
+# fail (e.g. a bare "SyntaxError: ..." signature typed by a user into `fix`
+# has no `.py` path or `Traceback` marker, so _ECOSYSTEM_CUES miss it, but
+# the full traceback that `watch` captures DOES contain those cues and returns
+# "python" — producing a hash mismatch that blocks the primary lookup).
+# NOTE: TypeError appears in both Python and Node, but bare "TypeError: ..."
+# without a Node stack (`at ... (file.js:N:M)`) defaults to python here, which
+# is the more common case. Real Node traces trigger the text-level node cue
+# first and win via that path.
+_ERROR_TYPE_TO_ECOSYSTEM: dict[str, str] = {
+    "ModuleNotFoundError": "python",
+    "ImportError": "python",
+    "SyntaxError": "python",
+    "IndentationError": "python",
+    "TabError": "python",
+    "NameError": "python",
+    "UnboundLocalError": "python",
+    "AttributeError": "python",
+    "TypeError": "python",
+    "ValueError": "python",
+    "KeyError": "python",
+    "IndexError": "python",
+    "RuntimeError": "python",
+    "RecursionError": "python",
+    "FileNotFoundError": "python",
+    "PermissionError": "python",
+    "IsADirectoryError": "python",
+    "NotADirectoryError": "python",
+    "ZeroDivisionError": "python",
+    "OverflowError": "python",
+    "ArithmeticError": "python",
+    "StopIteration": "python",
+    "StopAsyncIteration": "python",
+    "AssertionError": "python",
+    "LookupError": "python",
+    "UnicodeError": "python",
+    "UnicodeDecodeError": "python",
+    "UnicodeEncodeError": "python",
+    "OSError": "python",
+    "IOError": "python",
+    "PythonTraceback": "python",
+}
+
 _ECOSYSTEM_CUES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\b(pytest|python|\.py\b|ModuleNotFoundError|ImportError|Traceback)"), "python"),
     (re.compile(r"\b(npm|yarn|pnpm|node|\.js\b|\.ts\b|\.tsx\b|package\.json)"), "node"),
@@ -88,7 +131,7 @@ _TARGETED_REDACTORS: list[tuple[re.Pattern[str], str]] = [
     # ── Python ──────────────────────────────────────────────────────────────
     (re.compile(r"No module named ['\"][^'\"]*['\"]"), "No module named '<mod>'"),
     (
-        re.compile(r"cannot import name ['\"][^'\"]*['\"] from ['\"][^'\"]*['\"]"),
+        re.compile(r"cannot import name ['\"][^'\"]*['\"] from ['\"][^'\"]*['\"](\s*\([^)]*\))?"),
         "cannot import name '<name>' from '<mod>'",
     ),
     (re.compile(r"cannot import name ['\"][^'\"]*['\"]"), "cannot import name '<name>'"),
@@ -200,10 +243,16 @@ def _detect_error_type(line: str) -> str:
     return "Unknown"
 
 
-def _detect_ecosystem(text: str) -> str:
+def _detect_ecosystem(text: str, error_type: str | None = None) -> str:
     for pat, eco in _ECOSYSTEM_CUES:
         if pat.search(text):
             return eco
+    # Fallback: infer from the error type name when text-level cues all miss.
+    # This fixes the bare-signature → hash mismatch: a user typing
+    # "SyntaxError: ..." into `fix` produces no .py/Traceback cue, but the
+    # full traceback that `watch` captures does — same error class, same hash.
+    if error_type and error_type in _ERROR_TYPE_TO_ECOSYSTEM:
+        return _ERROR_TYPE_TO_ECOSYSTEM[error_type]
     return "unknown"
 
 
@@ -331,7 +380,7 @@ def compute_fingerprint(error_text: str) -> Fingerprint:
     essence = _redact(final_line)[:200]
 
     error_type = _detect_error_type(final_line)
-    ecosystem = _detect_ecosystem(text)
+    ecosystem = _detect_ecosystem(text, error_type=error_type)
     tool = _detect_tool(text)
     top_frame = _extract_top_frame(text)
 
