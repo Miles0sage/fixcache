@@ -24,7 +24,6 @@ import logging
 import os
 import re
 import sys
-import threading
 import time
 import uuid
 from pathlib import Path
@@ -41,6 +40,7 @@ from ..darwin_replay import (
 )
 from ..fingerprint import compute_fingerprint
 from ..layers.identity import IdentityLayer
+from ..util import safe_regex_search
 # prefetch module moved to _graveyard/ in lore-memory-lite — stub to keep imports clean
 def generate_briefing(*_a, **_kw): return {}
 def record_access(*_a, **_kw): pass
@@ -347,31 +347,6 @@ def handle_lore_fix(
     }
 
 
-def _safe_regex_search(pattern: str, text: str, timeout: float = 0.1) -> bool:
-    """Run re.search(pattern, text, IGNORECASE) with a timeout.
-
-    Prevents ReDoS: if a stored pattern catastrophically backtracks, the
-    match is aborted after `timeout` seconds and falls back to a plain
-    case-insensitive substring check.  Legitimate patterns never come close
-    to 100 ms even on 16 KB inputs.
-    """
-    result: list[bool] = [False]
-
-    def _run() -> None:
-        try:
-            result[0] = bool(re.search(pattern, text, re.IGNORECASE))
-        except re.error:
-            result[0] = pattern.lower() in text.lower()
-
-    t = threading.Thread(target=_run, daemon=True)
-    t.start()
-    t.join(timeout)
-    if t.is_alive():
-        # Timed out — degrade gracefully to literal substring match
-        return pattern.lower() in text.lower()
-    return result[0]
-
-
 def handle_lore_match_procedure(current_error: str) -> dict[str, Any]:
     """Find the best fix recipe via regex match on darwin_patterns, FTS5 fallback."""
     store = _get_store()
@@ -394,7 +369,7 @@ def handle_lore_match_procedure(current_error: str) -> dict[str, Any]:
         # Extract the error signature from description
         sig = description.replace("Fix for: ", "", 1)
         try:
-            if _safe_regex_search(sig, current_error):
+            if safe_regex_search(sig, current_error):
                 if confidence > best_confidence:
                     try:
                         solution_steps = json.loads(rule_json)
@@ -826,7 +801,8 @@ def handle_lore_briefing(
     """Generate a session-start briefing from recent memories."""
     store = _get_store()
     rows = store.conn.execute(
-        "SELECT id, content, memory_type, tags, created_at FROM memories ORDER BY created_at DESC LIMIT 10"
+        "SELECT id, content, memory_type, json_extract(metadata, '$.tags'), created_at"
+        " FROM memories ORDER BY created_at DESC LIMIT 10"
     ).fetchall()
     items = []
     for row in rows:
@@ -1007,7 +983,7 @@ def _handle_request_unsafe(request: dict) -> dict | None:
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    logger.info("lore-memory MCP server starting...")
+    logger.info("fixcache MCP server starting...")
     while True:
         try:
             line = sys.stdin.readline()

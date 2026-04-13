@@ -143,8 +143,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     watch.add_argument(
         "watch_argv",
-        nargs="*",
-        help="Command tokens (alternative to --cmd)",
+        nargs=argparse.REMAINDER,
+        help="Command tokens (alternative to --cmd); supports flags like '-c'",
     )
     watch.add_argument(
         "--json",

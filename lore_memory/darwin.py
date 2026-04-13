@@ -19,6 +19,7 @@ from typing import Any
 
 from .core.store import MemoryStore
 from .core.wal import WAL
+from .util import safe_regex_search
 
 
 # ── Confidence thresholds ──────────────────────────────────────────────────────
@@ -312,8 +313,7 @@ def evolve_patterns(
         for prow in pattern_rows:
             sig = prow[0].replace("Fix for: ", "", 1)
             try:
-                import re
-                if re.search(sig, query_text, re.IGNORECASE):
+                if safe_regex_search(sig, query_text):
                     has_pattern = True
                     break
             except re.error:

@@ -48,41 +48,31 @@ def upsert_fingerprint(store: MemoryStore, error_text: str) -> dict[str, Any]:
     fp = compute_fingerprint(error_text)
     now = time.time()
 
-    row = store.conn.execute(
-        "SELECT hash FROM fingerprints WHERE hash = ?", (fp.hash,)
-    ).fetchone()
-
-    if row is None:
-        store.conn.execute(
-            """
-            INSERT INTO fingerprints
-                (hash, error_type, ecosystem, tool, essence, top_frame,
-                 total_seen, total_success, total_failure,
-                 first_seen, last_seen, best_pattern_id, metadata)
-            VALUES (?, ?, ?, ?, ?, ?, 1, 0, 0, ?, ?, NULL, NULL)
-            """,
-            (
-                fp.hash,
-                fp.error_type,
-                fp.ecosystem,
-                fp.tool,
-                fp.essence,
-                fp.top_frame,
-                now,
-                now,
-            ),
-        )
-    else:
-        store.conn.execute(
-            """
-            UPDATE fingerprints
-               SET total_seen = total_seen + 1,
-                   last_seen = ?
-             WHERE hash = ?
-            """,
-            (now, fp.hash),
-        )
-
+    # INSERT OR IGNORE is atomic — no SELECT+INSERT race on concurrent callers.
+    store.conn.execute(
+        """
+        INSERT OR IGNORE INTO fingerprints
+            (hash, error_type, ecosystem, tool, essence, top_frame,
+             total_seen, total_success, total_failure,
+             first_seen, last_seen, best_pattern_id, metadata)
+        VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, NULL, NULL)
+        """,
+        (
+            fp.hash,
+            fp.error_type,
+            fp.ecosystem,
+            fp.tool,
+            fp.essence,
+            fp.top_frame,
+            now,
+            now,
+        ),
+    )
+    # Always increment total_seen — safe under concurrent writes.
+    store.conn.execute(
+        "UPDATE fingerprints SET total_seen = total_seen + 1, last_seen = ? WHERE hash = ?",
+        (now, fp.hash),
+    )
     store.conn.commit()
     return {
         **fp.as_dict(),

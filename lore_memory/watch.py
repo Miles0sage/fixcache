@@ -253,14 +253,14 @@ def watch_command(
     import json as _json
 
     if not command:
-        sys.stderr.write("lore-memory watch: missing command to run\n")
+        sys.stderr.write("fixcache watch: missing command to run\n")
         return 2
 
     try:
         exit_code, captured = run_command(command, tee=not json_output)
     except FileNotFoundError:
         sys.stderr.write(
-            f"lore-memory watch: command not found: {command[0]}\n"
+            f"fixcache watch: command not found: {command[0]}\n"
         )
         return 127
     except KeyboardInterrupt:
