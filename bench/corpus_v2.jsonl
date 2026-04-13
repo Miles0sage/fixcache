@@ -1,0 +1,142 @@
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"train.py\", line 4, in <module>\n    import sklearn\nModuleNotFoundError: No module named 'sklearn'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"app.py\", line 1, in <module>\n    import pandas\nModuleNotFoundError: No module named 'pandas'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"server.py\", line 3, in <module>\n    import fastapi\nModuleNotFoundError: No module named 'fastapi'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"ingest.py\", line 2, in <module>\n    import numpy\nModuleNotFoundError: No module named 'numpy'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"pipeline.py\", line 5, in <module>\n    import torch\nModuleNotFoundError: No module named 'torch'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"client.py\", line 1, in <module>\n    import requests\nModuleNotFoundError: No module named 'requests'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"worker.py\", line 2, in <module>\n    import redis\nModuleNotFoundError: No module named 'redis'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"migrate.py\", line 3, in <module>\n    import alembic\nModuleNotFoundError: No module named 'alembic'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"test_api.py\", line 1, in <module>\n    import pytest\nModuleNotFoundError: No module named 'pytest'"}
+{"class": "py-module-not-found", "text": "Traceback (most recent call last):\n  File \"scrape.py\", line 2, in <module>\n    import bs4\nModuleNotFoundError: No module named 'bs4'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"handler.py\", line 42, in process\n    result = self.client.send(payload)\nAttributeError: 'NoneType' object has no attribute 'send'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"model.py\", line 18, in predict\n    output = self.model.forward(x)\nAttributeError: 'NoneType' object has no attribute 'forward'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"db.py\", line 33, in query\n    rows = self.conn.execute(sql)\nAttributeError: 'NoneType' object has no attribute 'execute'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"router.py\", line 12, in dispatch\n    return self.handler.handle(req)\nAttributeError: 'NoneType' object has no attribute 'handle'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"cache.py\", line 7, in get\n    return self.store.get(key)\nAttributeError: 'NoneType' object has no attribute 'get'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"auth.py\", line 55, in verify\n    token = self.signer.sign(payload)\nAttributeError: 'NoneType' object has no attribute 'sign'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"pipeline.py\", line 28, in run\n    data = self.loader.load(path)\nAttributeError: 'NoneType' object has no attribute 'load'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"worker.py\", line 9, in execute\n    job = self.queue.pop()\nAttributeError: 'NoneType' object has no attribute 'pop'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"stream.py\", line 63, in write\n    self.buffer.write(chunk)\nAttributeError: 'NoneType' object has no attribute 'write'"}
+{"class": "py-attribute-none", "text": "Traceback (most recent call last):\n  File \"config.py\", line 14, in load\n    return self.parser.read(path)\nAttributeError: 'NoneType' object has no attribute 'read'"}
+{"class": "py-import-error", "text": "Traceback (most recent call last):\n  File \"app.py\", line 3, in <module>\n    from mypackage import utils\nImportError: cannot import name 'utils' from 'mypackage'"}
+{"class": "py-import-error", "text": "Traceback (most recent call last):\n  File \"server.py\", line 1, in <module>\n    from api import router\nImportError: cannot import name 'router' from 'api'"}
+{"class": "py-import-error", "text": "Traceback (most recent call last):\n  File \"train.py\", line 5, in <module>\n    from models import Transformer\nImportError: cannot import name 'Transformer' from 'models'"}
+{"class": "py-import-error", "text": "Traceback (most recent call last):\n  File \"cli.py\", line 2, in <module>\n    from commands import run\nImportError: cannot import name 'run' from 'commands'"}
+{"class": "py-import-error", "text": "Traceback (most recent call last):\n  File \"worker.py\", line 4, in <module>\n    from tasks import process_job\nImportError: cannot import name 'process_job' from 'tasks'"}
+{"class": "py-import-error", "text": "Traceback (most recent call last):\n  File \"test_core.py\", line 1, in <module>\n    from core import Engine\nImportError: cannot import name 'Engine' from 'core'"}
+{"class": "py-import-error", "text": "Traceback (most recent call last):\n  File \"main.py\", line 6, in <module>\n    from config import Settings\nImportError: cannot import name 'Settings' from 'config'"}
+{"class": "py-import-error", "text": "Traceback (most recent call last):\n  File \"migrate.py\", line 3, in <module>\n    from db import Session\nImportError: cannot import name 'Session' from 'db'"}
+{"class": "py-import-error", "text": "Traceback (most recent call last):\n  File \"scheduler.py\", line 2, in <module>\n    from jobs import nightly_report\nImportError: cannot import name 'nightly_report' from 'jobs'"}
+{"class": "py-syntax-invalid", "text": "File \"app.py\", line 14\n    def run(self\n           ^\nSyntaxError: '(' was never closed"}
+{"class": "py-syntax-invalid", "text": "File \"config.py\", line 8\n    return {key: value\n           ^\nSyntaxError: '{' was never closed"}
+{"class": "py-syntax-invalid", "text": "File \"handler.py\", line 22\n    if x == 1\n             ^\nSyntaxError: expected ':'"}
+{"class": "py-syntax-invalid", "text": "File \"models.py\", line 5\n    class Foo\n             ^\nSyntaxError: expected ':'"}
+{"class": "py-syntax-invalid", "text": "File \"routes.py\", line 31\n    async def fetch(url)\n                       ^\nSyntaxError: expected ':'"}
+{"class": "py-syntax-invalid", "text": "File \"tasks.py\", line 17\n    result = [x for x in items\n                               ^\nSyntaxError: '[' was never closed"}
+{"class": "py-syntax-invalid", "text": "File \"schema.py\", line 9\n    fields = (\n             ^\nSyntaxError: '(' was never closed"}
+{"class": "py-syntax-invalid", "text": "File \"runner.py\", line 44\n    print(\"done\"\n               ^\nSyntaxError: '(' was never closed"}
+{"class": "py-syntax-invalid", "text": "File \"seed.py\", line 3\n    data = [\n           ^\nSyntaxError: '[' was never closed"}
+{"class": "py-type-not-subscriptable", "text": "Traceback (most recent call last):\n  File \"router.py\", line 11, in dispatch\n    handler = registry[key]\nTypeError: 'NoneType' object is not subscriptable"}
+{"class": "py-type-not-subscriptable", "text": "Traceback (most recent call last):\n  File \"parser.py\", line 7, in parse\n    value = result[0]\nTypeError: 'NoneType' object is not subscriptable"}
+{"class": "py-type-not-subscriptable", "text": "Traceback (most recent call last):\n  File \"config.py\", line 19, in get\n    return settings['key']\nTypeError: 'NoneType' object is not subscriptable"}
+{"class": "py-type-not-subscriptable", "text": "Traceback (most recent call last):\n  File \"db.py\", line 34, in fetch\n    row = cursor[0]\nTypeError: 'NoneType' object is not subscriptable"}
+{"class": "py-type-not-subscriptable", "text": "Traceback (most recent call last):\n  File \"api.py\", line 28, in handle\n    data = response['data']\nTypeError: 'NoneType' object is not subscriptable"}
+{"class": "py-type-not-subscriptable", "text": "Traceback (most recent call last):\n  File \"pipeline.py\", line 52, in step\n    chunk = batch[idx]\nTypeError: 'NoneType' object is not subscriptable"}
+{"class": "py-type-not-subscriptable", "text": "Traceback (most recent call last):\n  File \"cache.py\", line 15, in lookup\n    entry = store['token']\nTypeError: 'NoneType' object is not subscriptable"}
+{"class": "py-type-not-subscriptable", "text": "Traceback (most recent call last):\n  File \"loader.py\", line 6, in read\n    record = dataset[i]\nTypeError: 'NoneType' object is not subscriptable"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'express'\nRequire stack:\n- /app/server.js\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1039:15)\n    at Function.Module._load (node:internal/modules/cjs/loader:885:27)\n    at Module.require (node:internal/modules/cjs/loader:1113:19)\n    at require (node:internal/modules/helpers:103:18)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'lodash'\nRequire stack:\n- /app/utils.js\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1039:15)\n    at Function.Module._load (node:internal/modules/cjs/loader:885:27)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'axios'\nRequire stack:\n- /app/client.js\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1039:15)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'dotenv'\nRequire stack:\n- /app/config.js\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1039:15)\n    at Function.Module._load (node:internal/modules/cjs/loader:885:27)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'mongoose'\nRequire stack:\n- /app/db.js\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1039:15)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'jsonwebtoken'\nRequire stack:\n- /app/auth.js\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1039:15)\n    at Function.Module._load (node:internal/modules/cjs/loader:885:27)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'redis'\nRequire stack:\n- /app/cache.js\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1039:15)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'pg'\nRequire stack:\n- /app/db/pool.js\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1039:15)\n    at Function.Module._load (node:internal/modules/cjs/loader:885:27)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'bcrypt'\nRequire stack:\n- /app/security.js\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1039:15)"}
+{"class": "node-cannot-find-module", "text": "Error: Cannot find module 'multer'\nRequire stack:\n- /app/upload.js\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1039:15)\n    at Function.Module._load (node:internal/modules/cjs/loader:885:27)"}
+{"class": "node-undefined-not-fn", "text": "TypeError: app.listen is not a function\n    at Object.<anonymous> (/app/server.js:12:5)\n    at Module._compile (node:internal/modules/cjs/loader:1364:14)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1422:10)"}
+{"class": "node-undefined-not-fn", "text": "TypeError: router.use is not a function\n    at Object.<anonymous> (/app/routes/index.js:8:8)\n    at Module._compile (node:internal/modules/cjs/loader:1364:14)"}
+{"class": "node-undefined-not-fn", "text": "TypeError: db.connect is not a function\n    at Object.<anonymous> (/app/database.js:5:4)\n    at Module._compile (node:internal/modules/cjs/loader:1364:14)"}
+{"class": "node-undefined-not-fn", "text": "TypeError: client.query is not a function\n    at Object.<anonymous> (/app/db/pool.js:17:12)\n    at Module._compile (node:internal/modules/cjs/loader:1364:14)"}
+{"class": "node-undefined-not-fn", "text": "TypeError: handler.handle is not a function\n    at processRequest (/app/middleware.js:23:14)\n    at Layer.handle [as handle_request] (/app/node_modules/express/lib/router/layer.js:95:5)"}
+{"class": "node-undefined-not-fn", "text": "TypeError: cache.get is not a function\n    at Object.<anonymous> (/app/services/cache.js:9:16)\n    at Module._compile (node:internal/modules/cjs/loader:1364:14)"}
+{"class": "node-undefined-not-fn", "text": "TypeError: queue.push is not a function\n    at Object.<anonymous> (/app/workers/job.js:31:11)\n    at Module._compile (node:internal/modules/cjs/loader:1364:14)"}
+{"class": "node-undefined-not-fn", "text": "TypeError: logger.info is not a function\n    at Object.<anonymous> (/app/utils/log.js:6:8)\n    at Module._compile (node:internal/modules/cjs/loader:1364:14)"}
+{"class": "node-read-prop-undefined", "text": "TypeError: Cannot read properties of undefined (reading 'id')\n    at getUserById (/app/controllers/user.js:14:22)\n    at Layer.handle [as handle_request] (/app/node_modules/express/lib/router/layer.js:95:5)"}
+{"class": "node-read-prop-undefined", "text": "TypeError: Cannot read properties of undefined (reading 'name')\n    at renderProfile (/app/views/profile.js:7:31)\n    at Layer.handle [as handle_request] (/app/node_modules/express/lib/router/layer.js:95:5)"}
+{"class": "node-read-prop-undefined", "text": "TypeError: Cannot read properties of undefined (reading 'token')\n    at verifyAuth (/app/middleware/auth.js:22:18)\n    at Layer.handle [as handle_request] (/app/node_modules/express/lib/router/layer.js:95:5)"}
+{"class": "node-read-prop-undefined", "text": "TypeError: Cannot read properties of undefined (reading 'status')\n    at handleResponse (/app/services/api.js:45:29)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)"}
+{"class": "node-read-prop-undefined", "text": "TypeError: Cannot read properties of undefined (reading 'data')\n    at parseResult (/app/utils/parser.js:12:16)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)"}
+{"class": "node-read-prop-undefined", "text": "TypeError: Cannot read properties of undefined (reading 'email')\n    at sendNotification (/app/services/mailer.js:33:24)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)"}
+{"class": "node-read-prop-undefined", "text": "TypeError: Cannot read properties of undefined (reading 'userId')\n    at createSession (/app/auth/session.js:18:20)\n    at Layer.handle [as handle_request] (/app/node_modules/express/lib/router/layer.js:95:5)"}
+{"class": "node-read-prop-undefined", "text": "TypeError: Cannot read properties of undefined (reading 'role')\n    at checkPermission (/app/middleware/rbac.js:9:27)\n    at Layer.handle [as handle_request] (/app/node_modules/express/lib/router/layer.js:95:5)"}
+{"class": "node-read-prop-undefined", "text": "TypeError: Cannot read properties of undefined (reading 'length')\n    at validateInput (/app/validators/schema.js:41:18)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)"}
+{"class": "node-read-prop-undefined", "text": "TypeError: Cannot read properties of undefined (reading 'message')\n    at handleError (/app/middleware/errors.js:6:23)\n    at Layer.handle_error (/app/node_modules/express/lib/router/layer.js:71:5)"}
+{"class": "go-undefined", "text": "./main.go:14:9: undefined: DatabaseClient"}
+{"class": "go-undefined", "text": "./server.go:31:5: undefined: Router"}
+{"class": "go-undefined", "text": "./handler.go:8:18: undefined: RequestContext"}
+{"class": "go-undefined", "text": "./worker.go:22:12: undefined: JobQueue"}
+{"class": "go-undefined", "text": "./auth.go:44:6: undefined: TokenValidator"}
+{"class": "go-undefined", "text": "./config.go:7:9: undefined: Settings"}
+{"class": "go-undefined", "text": "./api.go:55:14: undefined: ResponseWriter"}
+{"class": "go-undefined", "text": "./cache.go:18:8: undefined: RedisClient"}
+{"class": "go-undefined", "text": "./migrate.go:3:9: undefined: MigrationRunner"}
+{"class": "rust-unused-import", "text": "warning: unused import: `std::collections::HashMap`\n --> src/main.rs:3:5\n  |\n3 | use std::collections::HashMap;\n  |     ^^^^^^^^^^^^^^^^^^^^^^^^^\n  |\n  = note: `#[warn(unused_imports)]` on by default"}
+{"class": "rust-unused-import", "text": "warning: unused import: `std::io::Write`\n --> src/lib.rs:1:5\n  |\n1 | use std::io::Write;\n  |     ^^^^^^^^^^^^^^"}
+{"class": "rust-unused-import", "text": "warning: unused import: `log::debug`\n --> src/worker.rs:2:5\n  |\n2 | use log::debug;\n  |     ^^^^^^^^^^"}
+{"class": "rust-unused-import", "text": "warning: unused import: `serde::Deserialize`\n --> src/models.rs:4:5\n  |\n4 | use serde::Deserialize;\n  |     ^^^^^^^^^^^^^^^^^^"}
+{"class": "rust-unused-import", "text": "warning: unused import: `tokio::time::sleep`\n --> src/scheduler.rs:1:5\n  |\n1 | use tokio::time::sleep;\n  |     ^^^^^^^^^^^^^^^^^^"}
+{"class": "rust-unused-import", "text": "warning: unused import: `std::sync::Arc`\n --> src/state.rs:6:5\n  |\n6 | use std::sync::Arc;\n  |     ^^^^^^^^^^^^^^"}
+{"class": "rust-unused-import", "text": "warning: unused import: `anyhow::Context`\n --> src/error.rs:2:5\n  |\n2 | use anyhow::Context;\n  |     ^^^^^^^^^^^^^^^"}
+{"class": "rust-unused-import", "text": "warning: unused import: `reqwest::Client`\n --> src/http.rs:1:5\n  |\n1 | use reqwest::Client;\n  |     ^^^^^^^^^^^^^^^"}
+{"class": "rust-unused-import", "text": "warning: unused import: `std::path::PathBuf`\n --> src/fs.rs:3:5\n  |\n3 | use std::path::PathBuf;\n  |     ^^^^^^^^^^^^^^^^^^"}
+{"class": "rust-unused-import", "text": "warning: unused import: `tracing::instrument`\n --> src/trace.rs:1:5\n  |\n1 | use tracing::instrument;\n  |     ^^^^^^^^^^^^^^^^^^^"}
+{"class": "cuda-oom", "text": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 79.19 GiB of which 9.00 MiB is free. Including non-PyTorch memory, this process has 79.13 GiB memory in use. Of the allocated memory 77.33 GiB is allocated by PyTorch, and 1.05 GiB is reserved by PyTorch but unallocated."}
+{"class": "cuda-oom", "text": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 16.00 MiB. GPU 0 has a total capacity of 31.47 GiB of which 16.62 MiB is free. Including non-PyTorch memory, this process has 31.44 GiB memory in use. Of the allocated memory 31.11 GiB is allocated by PyTorch, and 39.01 MiB is reserved by PyTorch but unallocated."}
+{"class": "cuda-oom", "text": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 8.00 GiB. GPU 0 has a total capacity of 39.59 GiB of which 337.19 MiB is free. Process 641349 has 39.25 GiB memory in use. Of the allocated memory 16.49 GiB is allocated by PyTorch, and 19.59 GiB is reserved by PyTorch but unallocated."}
+{"class": "cuda-oom", "text": "RuntimeError: CUDA out of memory. Tried to allocate 2.44 GiB"}
+{"class": "cuda-oom", "text": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 50.00 MiB. GPU 0 has a total capacity of 7.67 GiB of which 23.44 MiB is free."}
+{"class": "cuda-oom", "text": "OutOfMemoryError: CUDA out of memory. Tried to allocate 162.00 MiB. GPU 0 has a total capacity of 14.56 GiB of which 29.81 MiB is free. Including non-PyTorch memory, this process has 14.53 GiB memory in use."}
+{"class": "cuda-oom", "text": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 56.00 GiB. GPU 1 has a total capacity of 23.56 GiB of which 20.66 GiB is free. Including non-PyTorch memory, this process has 2.66 GiB memory in use."}
+{"class": "cuda-oom", "text": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 50.51 GiB. GPU 1 total: 178.36 GiB | Free: 44.84 GiB | PyTorch allocated: 130.43 GiB"}
+{"class": "cuda-oom", "text": "CUDA out of memory. Tried to allocate 1.96 GiB. GPU 0 has a total capacity of 23.53 GiB of which 14.12 MiB is free."}
+{"class": "cuda-oom", "text": "OutOfMemoryError: CUDA out of memory. Tried to allocate 222.41 GiB (GPU 0; 23.56 GiB total capacity; 583.94 MiB already allocated; 22.66 GiB free; 612.00 MiB reserved in total by PyTorch)"}
+{"class": "linker-undefined-reference", "text": "/usr/bin/ld: /tmp/ccXXXXXX.o: in function `main':\nmain.c:(.text+0x1a): undefined reference to `sqlite3_open'\ncollect2: error: ld returned 1 exit status"}
+{"class": "linker-undefined-reference", "text": "/usr/bin/ld: build/server.o: in function `start_server':\nserver.c:(.text+0x44): undefined reference to `SSL_new'\ncollect2: error: ld returned 1 exit status"}
+{"class": "linker-undefined-reference", "text": "/usr/bin/ld: build/crypto.o: in function `hash_password':\ncrypto.c:(.text+0x2c): undefined reference to `EVP_DigestInit'\ncollect2: error: ld returned 1 exit status"}
+{"class": "linker-undefined-reference", "text": "/usr/bin/ld: build/net.o: in function `resolve_host':\nnet.c:(.text+0x18): undefined reference to `curl_easy_init'\ncollect2: error: ld returned 1 exit status"}
+{"class": "linker-undefined-reference", "text": "/usr/bin/ld: build/compress.o: in function `deflate_data':\ncompress.c:(.text+0x30): undefined reference to `deflateInit'\ncollect2: error: ld returned 1 exit status"}
+{"class": "linker-undefined-reference", "text": "/usr/bin/ld: build/image.o: in function `load_png':\nimage.c:(.text+0x54): undefined reference to `png_create_read_struct'\ncollect2: error: ld returned 1 exit status"}
+{"class": "linker-undefined-reference", "text": "/usr/bin/ld: build/audio.o: in function `play_sound':\naudio.c:(.text+0x22): undefined reference to `SDL_OpenAudio'\ncollect2: error: ld returned 1 exit status"}
+{"class": "linker-undefined-reference", "text": "/usr/bin/ld: build/db.o: in function `connect_pg':\ndb.c:(.text+0x10): undefined reference to `PQconnectdb'\ncollect2: error: ld returned 1 exit status"}
+{"class": "linker-undefined-reference", "text": "/usr/bin/ld: build/xml.o: in function `parse_doc':\nxml.c:(.text+0x3c): undefined reference to `xmlParseFile'\ncollect2: error: ld returned 1 exit status"}
+{"class": "net-connection-refused", "text": "Error: connect ECONNREFUSED 127.0.0.1:5432\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)"}
+{"class": "net-connection-refused", "text": "Error: connect ECONNREFUSED 127.0.0.1:6379\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)"}
+{"class": "net-connection-refused", "text": "Error: connect ECONNREFUSED 0.0.0.0:8080\n    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)"}
+{"class": "net-connection-refused", "text": "requests.exceptions.ConnectionError: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x...>: Failed to establish a new connection: [Errno 111] Connection refused'))"}
+{"class": "net-connection-refused", "text": "requests.exceptions.ConnectionError: HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /health (Caused by NewConnectionError('Failed to establish a new connection: [Errno 111] Connection refused'))"}
+{"class": "net-connection-refused", "text": "dial tcp 127.0.0.1:9200: connect: connection refused"}
+{"class": "net-connection-refused", "text": "dial tcp 0.0.0.0:3306: connect: connection refused"}
+{"class": "net-connection-refused", "text": "java.net.ConnectException: Connection refused (Connection refused)\n    at java.net.PlainSocketImpl.socketConnect(Native Method)\n    at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:350)"}
+{"class": "net-connection-refused", "text": "grpc: error while dialing dial tcp 127.0.0.1:50051: connect: connection refused"}
+{"class": "shell-permission-denied", "text": "bash: /usr/local/bin/deploy.sh: Permission denied"}
+{"class": "shell-permission-denied", "text": "bash: ./run.sh: Permission denied"}
+{"class": "shell-permission-denied", "text": "-bash: /opt/app/start.sh: Permission denied"}
+{"class": "shell-permission-denied", "text": "sh: 1: /entrypoint.sh: Permission denied"}
+{"class": "shell-permission-denied", "text": "/bin/sh: /scripts/migrate.sh: Permission denied"}
+{"class": "shell-permission-denied", "text": "bash: ./scripts/build.sh: Permission denied"}
+{"class": "shell-permission-denied", "text": "zsh: permission denied: /usr/local/bin/fixcache"}
+{"class": "shell-permission-denied", "text": "bash: /home/deploy/restart.sh: Permission denied"}
+{"class": "file-not-found", "text": "FileNotFoundError: [Errno 2] No such file or directory: '/app/config/settings.yaml'"}
+{"class": "file-not-found", "text": "FileNotFoundError: [Errno 2] No such file or directory: '/data/models/checkpoint.pt'"}
+{"class": "file-not-found", "text": "FileNotFoundError: [Errno 2] No such file or directory: '/etc/app/secrets.json'"}
+{"class": "file-not-found", "text": "open /app/data/seed.sql: no such file or directory"}
+{"class": "file-not-found", "text": "open /config/nginx.conf: no such file or directory"}
+{"class": "file-not-found", "text": "ENOENT: no such file or directory, open '/app/.env'"}
+{"class": "file-not-found", "text": "ENOENT: no such file or directory, open '/usr/local/share/app/schema.json'"}
+{"class": "file-not-found", "text": "error: could not load config: open /home/runner/config.toml: no such file or directory"}
+{"class": "file-not-found", "text": "error: template not found: /app/templates/email/welcome.html"}
+{"class": "shell-command-not-found", "text": "bash: docker: command not found"}
+{"class": "shell-command-not-found", "text": "bash: kubectl: command not found"}
+{"class": "shell-command-not-found", "text": "bash: git: command not found"}
+{"class": "shell-command-not-found", "text": "bash: python3: command not found"}

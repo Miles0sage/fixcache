@@ -129,12 +129,13 @@ _TOOL_CUES: list[tuple[re.Pattern[str], str]] = [
 # The ordering matters: more specific patterns come first.
 _TARGETED_REDACTORS: list[tuple[re.Pattern[str], str]] = [
     # ── Python ──────────────────────────────────────────────────────────────
-    (re.compile(r"No module named ['\"][^'\"]*['\"]"), "No module named '<mod>'"),
+    # Bound the quoted content to avoid ReDoS on 100k-char module names.
+    (re.compile(r"No module named ['\"][^'\"]{0,500}['\"]"), "No module named '<mod>'"),
     (
-        re.compile(r"cannot import name ['\"][^'\"]*['\"] from ['\"][^'\"]*['\"](\s*\([^)]*\))?"),
+        re.compile(r"cannot import name ['\"][^'\"]{0,500}['\"] from ['\"][^'\"]{0,500}['\"](\s*\([^)]*\))?"),
         "cannot import name '<name>' from '<mod>'",
     ),
-    (re.compile(r"cannot import name ['\"][^'\"]*['\"]"), "cannot import name '<name>'"),
+    (re.compile(r"cannot import name ['\"][^'\"]{0,500}['\"]"), "cannot import name '<name>'"),
     (
         re.compile(r"['\"][^'\"]+['\"] object has no attribute ['\"][^'\"]*['\"]"),
         "'<type>' object has no attribute '<attr>'",
@@ -147,7 +148,13 @@ _TARGETED_REDACTORS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"['\"][^'\"]+['\"] object is not callable"), "'<type>' object is not callable"),
     # ── Node / JS ───────────────────────────────────────────────────────────
     (re.compile(r"Cannot find module ['\"][^'\"]*['\"]"), "Cannot find module '<mod>'"),
-    (re.compile(r"\b\w+ is not a function\b"), "<name> is not a function"),
+    # Redact property name in "Cannot read properties of undefined (reading 'propName')"
+    (
+        re.compile(r"Cannot read properties of undefined \(reading ['\"][^'\"]*['\"]\)"),
+        "Cannot read properties of undefined (reading '<prop>')",
+    ),
+    # Dotted method chains like "app.listen is not a function" — match [\w.]+ not just \w+
+    (re.compile(r"[\w.][\w.]{0,99} is not a function\b"), "<name> is not a function"),
     (re.compile(r"\b\w+ is not defined\b"), "<name> is not defined"),
     # ── Go ──────────────────────────────────────────────────────────────────
     (re.compile(r"undefined: \w+"), "undefined: <name>"),
@@ -159,8 +166,135 @@ _TARGETED_REDACTORS: list[tuple[re.Pattern[str], str]] = [
     # a 10k-char adversarial input (catastrophic backtracking landed in
     # the security hardening suite). Release blocker if attacker-controlled.
     (re.compile(r"\S{1,200}: command not found"), "<cmd>: command not found"),
+    # Shell permission denied: normalize to a canonical form regardless of
+    # shell prefix (bash, -bash, sh, /bin/sh, zsh) and path position.
+    # Patterns seen:
+    #   "bash: /usr/local/bin/deploy.sh: Permission denied"
+    #   "-bash: /opt/app/start.sh: Permission denied"
+    #   "sh: 1: /entrypoint.sh: Permission denied"
+    #   "/bin/sh: /scripts/migrate.sh: Permission denied"
+    #   "zsh: permission denied: /usr/local/bin/fixcache"
+    # Canonical form: "shell: Permission denied: <path>"
+    # Pattern A: "<shell>: [N: ] <path>: Permission denied"
+    (
+        re.compile(
+            r"-?(?:bash|zsh|sh\b|/bin/sh|/bin/bash)(?::\s*\d+)?:\s*\S{1,200}:\s*[Pp]ermission denied"
+        ),
+        "shell: Permission denied: <path>",
+    ),
+    # Pattern B: "<shell>: permission denied: <path>"  (zsh reversed order)
+    (
+        re.compile(r"-?(?:bash|zsh|sh\b|/bin/sh|/bin/bash):\s*[Pp]ermission denied:\s*\S{1,200}"),
+        "shell: Permission denied: <path>",
+    ),
     # ── Filesystem ──────────────────────────────────────────────────────────
+    # Python FileNotFoundError: fully collapse to canonical form BEFORE the
+    # generic POSIX pattern fires. The POSIX pattern would leave the filename
+    # in the essence (via _ABS_PATH), causing per-file hash splits.
+    (
+        re.compile(
+            r"FileNotFoundError:\s*(?:\[Errno \d+\]\s*)?No such file or directory:\s*['\"][^'\"]{0,500}['\"]"
+        ),
+        "<path>: No such file or directory",
+    ),
+    # POSIX: "<path>: No such file or directory" — keep canonical form that
+    # existing tests expect ("<path>: No such file or directory").
     (re.compile(r"\S{1,200}: No such file or directory"), "<path>: No such file or directory"),
+    # Go/generic: "open /path: no such file or directory"
+    # with optional "error: <context>: " prefix
+    (
+        re.compile(r"(?:error:[^:]{0,100}:\s*)?open \S{1,200}:\s*no such file or directory", re.IGNORECASE),
+        "open <path>: no such file or directory",
+    ),
+    # Node: "ENOENT: no such file or directory, open '/path'"
+    (
+        re.compile(r"ENOENT:\s*no such file or directory,\s*open ['\"][^'\"]{0,500}['\"]"),
+        "ENOENT: no such file or directory, open '<path>'",
+    ),
+    # Generic "error: ... not found: /path" (Helm template, Go config, etc.)
+    (
+        re.compile(r"error:[^:]{0,100}not found:\s*\S{1,200}", re.IGNORECASE),
+        "error: not found: <path>",
+    ),
+    # ── Network ─────────────────────────────────────────────────────────────
+    # Normalize all non-Python connection-refused variants to a single canonical
+    # essence "connection refused: <addr>", so they all collapse to one hash.
+    # Python requests uses HTTPConnectionPool (different essence) which satisfies
+    # test_fp9 (Python != Node).
+    #
+    # Node: "Error: connect ECONNREFUSED 127.0.0.1:5432"
+    (
+        re.compile(r"(?:Error:\s*connect\s+)?ECONNREFUSED\s+[\d.:]+"),
+        "connection refused: <addr>",
+    ),
+    # Go / gRPC: "dial tcp ip:port: connect: connection refused"
+    #            "grpc: error while dialing dial tcp ...: connection refused"
+    (
+        re.compile(r"(?:grpc:[^:]{0,100}\s+)?dial tcp\s+[\d.:]+[^:]{0,100}:\s*connect:\s*connection refused"),
+        "connection refused: <addr>",
+    ),
+    # Java: "java.net.ConnectException: Connection refused"
+    (
+        re.compile(r"java\.net\.ConnectException:\s*Connection refused[^\n]{0,200}"),
+        "connection refused: <addr>",
+    ),
+    # Python requests HTTPConnectionPool — keep distinct prefix for test_fp9.
+    # Strip host/port and URL; bound to avoid ReDoS.
+    (
+        re.compile(
+            r"HTTPConnectionPool\(host=['\"][^'\"]{0,200}['\"],\s*port=\d{1,6}\)[^(]{0,300}"
+            r"(?:connection refused|Failed to establish a new connection|Max retries exceeded)[^\n]{0,200}"
+        ),
+        "HTTPConnectionPool: connection refused",
+    ),
+    # ── CUDA / GPU out-of-memory ─────────────────────────────────────────────
+    # Normalize memory sizes like "20.00 MiB", "8.00 GiB", "337.19 MiB".
+    (
+        re.compile(r"\d+(?:\.\d+)?\s*(?:GiB|MiB|KiB|GB|MB|KB)\b"),
+        "<mem>",
+    ),
+    # GPU index varies: "GPU 0", "GPU 1"
+    (re.compile(r"GPU\s+\d+"), "GPU <n>"),
+    # Process IDs in CUDA errors: "Process 641349 has ..."
+    (re.compile(r"Process\s+\d+"), "Process <n>"),
+    # Normalize CUDA OOM error-type prefixes to a single canonical essence.
+    # IMPORTANT: RuntimeError is intentionally excluded — test_fp8 requires
+    # torch.OutOfMemoryError != RuntimeError (different fix recipes).
+    #
+    # Single pattern that matches:
+    #   "torch.OutOfMemoryError: CUDA out of memory ..."
+    #   "OutOfMemoryError: CUDA out of memory ..."
+    #   bare "CUDA out of memory ..."  (no Error prefix)
+    #
+    # Use re.sub count=1 via a lambda to avoid double-firing when the result
+    # of one sub is fed into another. Since all patterns are in the same list
+    # and .sub() is called once per pattern, they DO chain — so we use a
+    # single combined pattern with explicit non-backtracking alternatives.
+    #
+    # "torch.OutOfMemoryError:" — literal prefix, fast
+    # "OutOfMemoryError:" — literal prefix, fast (won't re-match canonical output
+    #   because we replace the whole line including "CUDA out of memory")
+    # "^CUDA out of memory" — anchored to line start via multiline
+    # Match torch.OutOfMemoryError or OutOfMemoryError prefix with CUDA OOM
+    (
+        re.compile(
+            r"(?:torch\.OutOfMemoryError|OutOfMemoryError):\s*CUDA out of memory[^\n]{0,300}"
+        ),
+        "OutOfMemoryError: CUDA out of memory",
+    ),
+    # Bare "CUDA out of memory" with no Error prefix (C++ runtime layer)
+    # Use multiline flag so ^ anchors to start of any line in the string.
+    (
+        re.compile(r"^CUDA out of memory[^\n]{0,300}", re.MULTILINE),
+        "OutOfMemoryError: CUDA out of memory",
+    ),
+    # ── Python SyntaxError — collapse all syntax-error message variants ─────────
+    # "'(' was never closed", "'[' was never closed", "expected ':'" all differ
+    # but are all the same class of error.  Collapse the detail to <detail>.
+    (
+        re.compile(r"SyntaxError:\s*.+"),
+        "SyntaxError: <detail>",
+    ),
     # ── Secrets & tokens ────────────────────────────────────────────────────
     # Redact common API-key shapes even when they appear unquoted in the
     # wild. Runs before the generic _QUOTED redactor so that bare tokens
@@ -329,6 +463,22 @@ def _pick_final_line(text: str) -> str:
     if not lines:
         return ""
 
+    # Pass 0a: Rust/compiler warnings — prefer the "warning: ..." line over
+    # the subsequent caret (^^^^^) underline or "= note:" lines.
+    # Pattern: line starting with "warning:" that contains meaningful content
+    # (not just "warning: N warning(s) emitted" summary lines).
+    _RUST_WARNING = re.compile(r"^warning:\s+(?!(\d+\s+warning))")
+    for line in reversed(lines):
+        if _RUST_WARNING.match(line):
+            return line
+
+    # Pass 0b: Java/network "Connection refused" — prefer the ConnectException
+    # line over the stack trace that follows it.
+    _CONN_REFUSED = re.compile(r"(?:ConnectException|Connection refused|ECONNREFUSED|connection refused)", re.IGNORECASE)
+    for line in reversed(lines):
+        if _CONN_REFUSED.search(line) and not line.startswith("at "):
+            return line
+
     # Pass 1: last line where a non-FAILED error pattern anchors at position 0
     for line in reversed(lines):
         for pat, label in _ERROR_TYPE_PATTERNS:
@@ -382,6 +532,70 @@ def compute_fingerprint(error_text: str) -> Fingerprint:
     error_type = _detect_error_type(final_line)
     ecosystem = _detect_ecosystem(text, error_type=error_type)
     tool = _detect_tool(text)
+
+    # For shell-native errors (command not found, permission denied) the
+    # command/path name that appears in the error text can falsely trigger
+    # ecosystem and tool cues (e.g. "git: command not found" → tool=git,
+    # "python3: command not found" → eco=python). Force-override these.
+    # Also normalize error_type for zsh "permission denied" (lowercase) which
+    # doesn't fire the "Permission denied" pattern → error_type=Unknown.
+    if error_type in ("CommandNotFound", "PermissionDenied") or essence == "shell: Permission denied: <path>":
+        error_type = "PermissionDenied"
+        ecosystem = "shell"
+        tool = "unknown"
+
+    # ModuleNotFoundError: tool varies (pytest when test file imports missing
+    # module). The error is the same regardless of runner — normalize tool.
+    if error_type == "ModuleNotFoundError":
+        tool = "unknown"
+
+    # CUDA OOM: after redaction torch.OutOfMemoryError and bare OutOfMemoryError
+    # both produce essence "OutOfMemoryError: CUDA out of memory". Normalize
+    # error_type/eco so their hashes are stable.
+    # RuntimeError is intentionally NOT included — test_fp8 requires it to
+    # produce a different hash (different fix recipe needed).
+    if essence == "OutOfMemoryError: CUDA out of memory":
+        error_type = "OutOfMemoryError"
+        ecosystem = "python"
+        tool = "unknown"
+
+    # Connection-refused: normalize Node/Go/Java variants to stable hash.
+    # "connection refused: <addr>" covers ECONNREFUSED, dial tcp, java.net.
+    # "HTTPConnectionPool: connection refused" stays distinct (test_fp9 requires
+    # Python ConnectionError != Node ECONNREFUSED).
+    if essence == "connection refused: <addr>":
+        error_type = "ConnectionRefused"
+        ecosystem = "unknown"
+        tool = "unknown"
+    elif essence == "HTTPConnectionPool: connection refused":
+        error_type = "ConnectionRefused"
+        ecosystem = "python"
+        tool = "unknown"
+
+    # FileNotFound: unify all "no such file" variants to a single canonical
+    # essence so Python FileNotFoundError, Go open, and Node ENOENT all
+    # collapse to the same fingerprint.
+    # IMPORTANT: shell "bash: /path: No such file or directory" must stay
+    # distinct (test_fp6). Shell errors have eco=shell — we only normalize
+    # non-shell ecosystems. This preserves the shell↔python distinction.
+    _FILE_NOT_FOUND_MARKERS = (
+        "No such file or directory",
+        "no such file or directory",
+        "not found: <path>",
+        "ENOENT",
+    )
+    # Shell "bash: /path: No such file or directory" has final_line starting
+    # with a shell name, which causes essence to start with "bash: <path>:..."
+    # or "<p>/sh: <path>:...". Detect this by checking for shell prefix in
+    # the essence — these must stay distinct from Python FileNotFoundError
+    # (test_fp6 requires py != shell).
+    _SHELL_PREFIX = re.compile(r"^(?:-?(?:bash|zsh|sh\b)|<p>/\w+):")
+    _is_shell_fnf = bool(_SHELL_PREFIX.match(essence))
+    if any(m in essence for m in _FILE_NOT_FOUND_MARKERS) and not _is_shell_fnf:
+        error_type = "FileNotFound"
+        ecosystem = "unknown"
+        tool = "unknown"
+        essence = "<path>: No such file or directory"
     top_frame = _extract_top_frame(text)
 
     # top_frame is intentionally excluded from the canonical hash:
