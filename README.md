@@ -4,8 +4,16 @@
 
 Your agents keep hitting the same errors. `fixcache` fingerprints every failure, remembers the fix, and surfaces it the next time any agent on any repo hits the same wall.
 
+![fixcache demo](demo/demo.svg)
+
+```bash
+pip install fixcache && fixcache init
+```
+
+**Works with:** Claude Code · Cursor · Windsurf · Codex · Any MCP tool
+
 [![PyPI](https://img.shields.io/pypi/v/fixcache)](https://pypi.org/project/fixcache/)
-[![Tests](https://img.shields.io/badge/tests-292%20passing-brightgreen)](https://github.com/Miles0sage/fixcache/actions)
+[![Tests](https://img.shields.io/badge/tests-582%20passing-brightgreen)](https://github.com/Miles0sage/fixcache/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/pypi/pyversions/fixcache)](https://pypi.org/project/fixcache/)
 
