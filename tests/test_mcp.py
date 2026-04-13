@@ -702,9 +702,11 @@ class TestLoreRateFix:
         row = isolated_store.conn.execute(
             "SELECT confidence, frequency FROM darwin_patterns WHERE id=?", (pid,)
         ).fetchone()
-        c, n = row[0], row[1]
-        expected = (c * n + 1) / (n + 1)
+        # New uninformative prior: alpha_0=1, beta_0=1 (flat Beta).
+        # First success: alpha=2, beta=1 → conf=2/3≈0.6667
+        # Formula: (1+1)/(1+1+1) regardless of stored confidence/frequency.
         result = mcp_server.handle_lore_rate_fix(pid, "success")
+        expected = 2.0 / 3.0  # Beta(1,1) + success = Beta(2,1)
         assert abs(result["new_confidence"] - round(expected, 4)) < 0.0001
 
     def test_bayesian_update_failure_formula(self, isolated_store):
@@ -713,12 +715,10 @@ class TestLoreRateFix:
             solution_steps=["step"],
         )
         pid = fix["pattern_id"]
-        row = isolated_store.conn.execute(
-            "SELECT confidence, frequency FROM darwin_patterns WHERE id=?", (pid,)
-        ).fetchone()
-        c, n = row[0], row[1]
-        expected = (c * n) / (n + 1)
+        # New uninformative prior: alpha_0=1, beta_0=1 (flat Beta).
+        # First failure: alpha=1, beta=2 → conf=1/3≈0.3333
         result = mcp_server.handle_lore_rate_fix(pid, "failure")
+        expected = 1.0 / 3.0  # Beta(1,1) + failure = Beta(1,2)
         assert abs(result["new_confidence"] - round(expected, 4)) < 0.0001
 
     def test_logs_to_darwin_journal(self, isolated_store):

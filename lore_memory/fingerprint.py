@@ -329,6 +329,22 @@ _TARGETED_REDACTORS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"(?i)(?:api[_-]?key|auth[_-]?token|access[_-]?token|secret)[=:\s]+\S{8,}"), "<api_key>"),
     # ── Relative paths (./foo.go, ./src/main.rs, ./foo.go:12:9) ────────────
     (re.compile(r"\./[\w./-]+\.[a-z]+(?::\d+)?(?::\d+)?"), "./<file>"),
+    # ── Rust compiler error codes ─────────────────────────────────────────
+    # "error[E0502]: cannot borrow..." — collapse code to <Exxxx> so all
+    # borrow-checker / type errors with the same prose normalise together.
+    (re.compile(r"error\[E\d{4}\]"), "error[<Exxxx>]"),
+    # ── LLM / Anthropic API path-like message indices ─────────────────────
+    # "messages.3.content.1.text" — numeric positional indices vary per
+    # request but the error class is the same.  Collapse to <idx>.
+    (re.compile(r"\bmessages\.\d+(?:\.\w+\.\d+)*(?:\.\w+)?"), "messages.<idx>"),
+    # ── Pydantic v2 validation field lines ───────────────────────────────
+    # Multi-line pydantic ValidationError dumps end with field-specific
+    # lines like "  email\n    value is not a valid email address" — these
+    # differ per model but belong to the same error class.
+    (
+        re.compile(r"(?:ensure this value|value is not a valid|field required|extra inputs).*"),
+        "pydantic: <validation_detail>",
+    ),
 ]
 
 # Strip file paths: /any/abs/path/foo.py → foo.py

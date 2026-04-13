@@ -118,9 +118,13 @@ def update_confidence(
         except (json.JSONDecodeError, TypeError):
             meta = {}
 
-    # Initialise Beta parameters from metadata (or derive from existing confidence)
-    alpha = float(meta.get("beta_alpha", old_confidence * max(frequency, 1)))
-    beta_val = float(meta.get("beta_beta", (1.0 - old_confidence) * max(frequency, 1)))
+    # Initialise Beta parameters from metadata.
+    # If not yet stored, use an uninformative prior (1, 1) — the flat Beta.
+    # Do NOT derive from frequency: frequency counts total applications, not
+    # outcomes, so using it as a pseudo-count invents phantom training data and
+    # makes the learning rate collapse on heavily-seen but un-rated patterns.
+    alpha = float(meta.get("beta_alpha", 1.0))
+    beta_val = float(meta.get("beta_beta", 1.0))
 
     # Ensure minimum non-zero values
     alpha = max(alpha, 0.5)
