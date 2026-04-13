@@ -260,6 +260,28 @@ def handle_lore_fix(
         }
     )
 
+    # Deduplication: if an identical recipe (same fingerprint + same steps) already
+    # exists, return it instead of creating a duplicate. Re-seeding the same fix
+    # should be idempotent, not create N copies that all surface on recall.
+    existing = store.conn.execute(
+        """
+        SELECT id, metadata FROM darwin_patterns
+        WHERE rule = ? AND json_extract(metadata, '$.fingerprint_hash') = ?
+        LIMIT 1
+        """,
+        (steps_json, fp.hash),
+    ).fetchone()
+    if existing:
+        existing_meta = json.loads(existing[1]) if existing[1] else {}
+        return {
+            "success": True,
+            "recipe_id": existing_meta.get("recipe_id", existing[0]),
+            "pattern_id": existing[0],
+            "fingerprint": fp.hash,
+            "fingerprint_ecosystem": fp.ecosystem,
+            "deduplicated": True,
+        }
+
     pattern_id = str(uuid.uuid4())
     description = f"Fix for: {error_signature[:120]}"
     rule = steps_json  # rule stores the solution_steps JSON
@@ -983,6 +1005,15 @@ def _handle_request_unsafe(request: dict) -> dict | None:
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    # Parse --db <path> so callers can isolate databases without env var gymnastics.
+    # Must run before _get_store() is called for the first time.
+    import argparse as _ap
+    _parser = _ap.ArgumentParser(add_help=False)
+    _parser.add_argument("--db", default=None)
+    _args, _ = _parser.parse_known_args()
+    if _args.db:
+        os.environ["LORE_MEMORY_DB"] = _args.db
+
     logger.info("fixcache MCP server starting...")
     while True:
         try:
