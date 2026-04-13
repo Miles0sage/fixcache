@@ -137,8 +137,12 @@ _TARGETED_REDACTORS: list[tuple[re.Pattern[str], str]] = [
     ),
     (re.compile(r"cannot import name ['\"][^'\"]{0,500}['\"]"), "cannot import name '<name>'"),
     (
-        re.compile(r"['\"][^'\"]+['\"] object has no attribute ['\"][^'\"]*['\"]"),
-        "'<type>' object has no attribute '<attr>'",
+        # Keep the attribute name — it is the diagnostic signal (get vs items vs keys
+        # are meaningfully different fixes). Redact only the object type, which
+        # varies across call sites but carries no fix-selection value.
+        # Backreference \1 preserves the attr name through re.sub.
+        re.compile(r"['\"][^'\"]+['\"] object has no attribute ['\"]([^'\"]{0,100})['\"]"),
+        r"'<type>' object has no attribute '\1'",
     ),
     (
         re.compile(r"['\"][^'\"]+['\"] object is not subscriptable"),
