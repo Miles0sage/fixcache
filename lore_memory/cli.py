@@ -335,6 +335,7 @@ def _cmd_darwin(args: argparse.Namespace, mem: LoreMemory) -> int:
         return 0
 
     if sub_cmd == "report":
+        from .darwin import update_confidence
         pat_row = mem.store.conn.execute(
             "SELECT metadata FROM darwin_patterns WHERE id = ?", (args.pattern_id,)
         ).fetchone()
@@ -353,6 +354,8 @@ def _cmd_darwin(args: argparse.Namespace, mem: LoreMemory) -> int:
         if not result.get("success"):
             print(f"Error: {result.get('error', 'unknown')}", file=sys.stderr)
             return 1
+        # Update Bayesian confidence on the individual pattern
+        update_confidence(mem.store, args.pattern_id, args.outcome)
         eff = result.get("efficacy")
         eff_str = f"{eff:.0%}" if eff is not None else "unrated"
         print(f"Recorded {args.outcome} for pattern {args.pattern_id}")
