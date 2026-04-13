@@ -457,3 +457,123 @@ def consolidate(
         "deduped": deduped,
         "deprecated": deprecated,
     }
+
+
+# ── auto_report_outcome ───────────────────────────────────────────────────────
+
+def auto_report_outcome(
+    pattern_id: str,
+    store: MemoryStore,
+    apply_window: int = 60,
+    success_window: int = 30,
+    repeat_window: int = 60,
+) -> dict[str, Any]:
+    """
+    Watch behavior, not ask for feedback.
+
+    Infers whether a pattern application succeeded or failed by observing:
+    - Was the pattern triggered recently (within apply_window seconds)?
+    - Did any error entries appear in darwin_journal in the next success_window seconds?
+    - Did the same fingerprint (result_ids) appear again within repeat_window seconds?
+
+    Calls update_confidence() based on the inferred outcome.
+
+    Args:
+        pattern_id:     ID of the darwin_pattern to check.
+        store:          MemoryStore instance.
+        apply_window:   Seconds to look back for a recent trigger. Default 60.
+        success_window: Seconds after trigger with no errors → infer SUCCESS. Default 30.
+        repeat_window:  Seconds after trigger; repeat same fingerprint → infer FAILURE. Default 60.
+
+    Returns:
+        Dict with inferred_outcome, confidence_update result, or reason if no action taken.
+    """
+    now = time.time()
+
+    # ── 1. Check if pattern was triggered recently ────────────────────────────
+    row = store.conn.execute(
+        "SELECT last_triggered, confidence FROM darwin_patterns WHERE id=?",
+        (pattern_id,),
+    ).fetchone()
+
+    if row is None:
+        return {"success": False, "error": f"Pattern not found: {pattern_id}"}
+
+    last_triggered, confidence = row[0], row[1]
+
+    if last_triggered is None or (now - last_triggered) > apply_window:
+        return {
+            "success": False,
+            "reason": "pattern_not_recently_triggered",
+            "last_triggered": last_triggered,
+            "apply_window_s": apply_window,
+        }
+
+    trigger_time = last_triggered
+
+    # ── 2. Check for repeat fingerprint within repeat_window → FAILURE ────────
+    repeat_row = store.conn.execute(
+        """
+        SELECT COUNT(*) FROM darwin_journal
+        WHERE result_ids = ?
+          AND timestamp > ?
+          AND timestamp <= ?
+          AND outcome = 'failure'
+        """,
+        (pattern_id, trigger_time, trigger_time + repeat_window),
+    ).fetchone()
+
+    if repeat_row and repeat_row[0] > 0:
+        inferred = "failure"
+        result = update_confidence(store, pattern_id, inferred)
+        log_outcome(store, pattern_id, inferred, context="auto_report: repeat fingerprint detected")
+        return {
+            "success": True,
+            "inferred_outcome": inferred,
+            "reason": "repeat_fingerprint_in_window",
+            "confidence_update": result,
+        }
+
+    # ── 3. Check for error entries in journal after trigger → FAILURE ─────────
+    error_row = store.conn.execute(
+        """
+        SELECT COUNT(*) FROM darwin_journal
+        WHERE outcome = 'failure'
+          AND timestamp > ?
+          AND timestamp <= ?
+        """,
+        (trigger_time, trigger_time + success_window),
+    ).fetchone()
+
+    if error_row and error_row[0] > 0:
+        inferred = "failure"
+        result = update_confidence(store, pattern_id, inferred)
+        log_outcome(store, pattern_id, inferred, context="auto_report: error entries after apply")
+        return {
+            "success": True,
+            "inferred_outcome": inferred,
+            "reason": "errors_after_apply",
+            "confidence_update": result,
+        }
+
+    # ── 4. No errors in success_window → infer SUCCESS ───────────────────────
+    elapsed = now - trigger_time
+    if elapsed >= success_window:
+        inferred = "success"
+        result = update_confidence(store, pattern_id, inferred)
+        log_outcome(store, pattern_id, inferred, context="auto_report: no errors in success window")
+        return {
+            "success": True,
+            "inferred_outcome": inferred,
+            "reason": "no_errors_in_success_window",
+            "elapsed_s": round(elapsed, 1),
+            "confidence_update": result,
+        }
+
+    # ── 5. Still within success window — too early to decide ─────────────────
+    return {
+        "success": False,
+        "reason": "still_within_success_window",
+        "elapsed_s": round(elapsed, 1),
+        "success_window_s": success_window,
+    }

@@ -189,7 +189,7 @@ _TARGETED_REDACTORS: list[tuple[re.Pattern[str], str]] = [
 # than as part of each iteration. This makes each iteration consume a
 # unique `/<segment>` pair — linear time, no nested-quantifier hazard —
 # while still collapsing `/abs/path/secret.py` to `<p>/secret.py`.
-_ABS_PATH = re.compile(r"(?:/[^\s:/'\"`]+){1,20}/([^/\s:'\"`]+)")
+_ABS_PATH = re.compile(r"(?:/[^\s:/'\"`<>]+){1,20}/([^/\s:'\"`<>]+)")
 # Strip line/column numbers: file.py:42:8 → file.py:<L>:<C>
 _LINE_COL = re.compile(r"(\.[a-z]+):(\d+)(:(\d+))?")
 # Strip hex-looking IDs (UUIDs, hashes, pointer addresses like 0xdeadbeef).

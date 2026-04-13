@@ -80,8 +80,7 @@ fixcache stats                     # hit rate + efficacy dashboard
 {
   "mcpServers": {
     "fixcache": {
-      "command": "python3",
-      "args": ["-m", "fixcache.mcp.server"]
+      "command": "fixcache-mcp"
     }
   }
 }

@@ -443,7 +443,7 @@ class TestJsonRpcProtocol:
         }
         resp = mcp_server.handle_request(req)
         assert resp["result"]["protocolVersion"] == "2025-11-25"
-        assert resp["result"]["serverInfo"]["name"] == "lore-memory"
+        assert resp["result"]["serverInfo"]["name"] == "fixcache"
 
     def test_tools_list(self):
         req = {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}

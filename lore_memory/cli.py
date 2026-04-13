@@ -25,7 +25,7 @@ from .config import LoreConfig
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="lore-memory",
+        prog="fixcache",
         description="Memory that learns from forgetting.",
     )
     parser.add_argument(

@@ -90,7 +90,12 @@ def upsert_fingerprint(store: MemoryStore, error_text: str) -> dict[str, Any]:
     }
 
 
+_COUNTER_COLUMNS = frozenset({"total_seen", "total_success", "total_failure"})
+
+
 def _get_counter(store: MemoryStore, fp_hash: str, column: str) -> int:
+    if column not in _COUNTER_COLUMNS:
+        raise ValueError(f"Unknown counter column: {column!r}")
     row = store.conn.execute(
         f"SELECT {column} FROM fingerprints WHERE hash = ?", (fp_hash,)
     ).fetchone()

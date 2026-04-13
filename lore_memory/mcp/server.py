@@ -24,6 +24,7 @@ import logging
 import os
 import re
 import sys
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -346,6 +347,31 @@ def handle_lore_fix(
     }
 
 
+def _safe_regex_search(pattern: str, text: str, timeout: float = 0.1) -> bool:
+    """Run re.search(pattern, text, IGNORECASE) with a timeout.
+
+    Prevents ReDoS: if a stored pattern catastrophically backtracks, the
+    match is aborted after `timeout` seconds and falls back to a plain
+    case-insensitive substring check.  Legitimate patterns never come close
+    to 100 ms even on 16 KB inputs.
+    """
+    result: list[bool] = [False]
+
+    def _run() -> None:
+        try:
+            result[0] = bool(re.search(pattern, text, re.IGNORECASE))
+        except re.error:
+            result[0] = pattern.lower() in text.lower()
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    t.join(timeout)
+    if t.is_alive():
+        # Timed out — degrade gracefully to literal substring match
+        return pattern.lower() in text.lower()
+    return result[0]
+
+
 def handle_lore_match_procedure(current_error: str) -> dict[str, Any]:
     """Find the best fix recipe via regex match on darwin_patterns, FTS5 fallback."""
     store = _get_store()
@@ -368,7 +394,7 @@ def handle_lore_match_procedure(current_error: str) -> dict[str, Any]:
         # Extract the error signature from description
         sig = description.replace("Fix for: ", "", 1)
         try:
-            if re.search(sig, current_error, re.IGNORECASE):
+            if _safe_regex_search(sig, current_error):
                 if confidence > best_confidence:
                     try:
                         solution_steps = json.loads(rule_json)
@@ -797,22 +823,30 @@ def handle_lore_briefing(
     entity: str | None = None,
     tool_used: str | None = None,
 ) -> dict[str, Any]:
-    """Generate a session-start briefing with predicted context."""
+    """Generate a session-start briefing from recent memories."""
     store = _get_store()
-    return generate_briefing(store, entity=entity, tool_used=tool_used)
-
-
-# ── Cognition tool wrapper ────────────────────────────────────────────────────
-
-def _handle_lore_knowledge(query: str, top_k: int = 5) -> dict[str, Any]:
-    """Thin wrapper around cognition.handle_lore_knowledge using the module store."""
-    from ..cognition import query_knowledge
-    store = _get_store()
-    results = query_knowledge(store, query, top_k=top_k)
+    rows = store.conn.execute(
+        "SELECT id, content, memory_type, tags, created_at FROM memories ORDER BY created_at DESC LIMIT 10"
+    ).fetchall()
+    items = []
+    for row in rows:
+        mem_id, content, mem_type, tags, created_at = row
+        items.append({
+            "id": mem_id,
+            "type": mem_type or "fact",
+            "content": content[:200] if content else "",
+            "tags": tags or "",
+            "age_s": round(time.time() - (created_at or 0), 0),
+        })
+    summary = f"{len(items)} recent memories"
+    if entity:
+        summary += f" (entity={entity})"
+    if tool_used:
+        summary += f" (tool={tool_used})"
     return {
-        "query": query,
-        "results": results,
-        "count": len(results),
+        "summary": summary,
+        "memories": items,
+        "count": len(items),
     }
 
 
@@ -830,7 +864,6 @@ _HANDLERS = {
     "lore_rate_fix": handle_lore_rate_fix,
     "lore_report_outcome": handle_lore_report_outcome,
     "lore_evolve": handle_lore_evolve,
-    "lore_knowledge": _handle_lore_knowledge,
     "lore_briefing": handle_lore_briefing,
     "lore_darwin_classify": handle_lore_darwin_classify,
     "lore_darwin_stats": handle_lore_darwin_stats,
@@ -891,7 +924,7 @@ def _handle_request_unsafe(request: dict) -> dict | None:
             "result": {
                 "protocolVersion": negotiated,
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "lore-memory", "version": "0.1.0"},
+                "serverInfo": {"name": "fixcache", "version": "0.4.0"},
             },
         }
 

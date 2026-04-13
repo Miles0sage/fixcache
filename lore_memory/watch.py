@@ -167,14 +167,14 @@ def format_suggestions(
     if not result.suggestions:
         if result.fingerprint_hash:
             return (
-                f"\n💡 lore-memory: new failure fingerprint {result.fingerprint_hash}. "
-                f"No recipes yet — use `lore-memory fix` to teach me the fix.\n"
+                f"\n💡 fixcache: new failure fingerprint {result.fingerprint_hash}. "
+                f"No recipes yet — use `fixcache fix` to teach me the fix.\n"
             )
         return ""
 
     lines = [""]
     lines.append(
-        f"💡 lore-memory: matched fingerprint {result.fingerprint_hash}"
+        f"💡 fixcache: matched fingerprint {result.fingerprint_hash}"
     )
     if stats:
         total = stats.get("total_seen", 0)
@@ -202,7 +202,7 @@ def format_suggestions(
     lines.append("")
     top = result.suggestions[0]
     lines.append(
-        f"   Apply? Run: lore-memory darwin report {top['pattern_id']} success  "
+        f"   Apply? Run: fixcache darwin report {top['pattern_id']} success  "
         f"# or 'failure'"
     )
     lines.append("")

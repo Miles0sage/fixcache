@@ -134,7 +134,7 @@ class TestFormatSuggestions:
         r = WatchResult(exit_code=1, stderr_tail="err", fingerprint_hash="abc123")
         out = format_suggestions(r)
         assert "abc123" in out
-        assert "lore-memory fix" in out
+        assert "fixcache fix" in out
 
     def test_with_suggestions(self) -> None:
         r = WatchResult(

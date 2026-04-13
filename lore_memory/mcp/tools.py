@@ -369,26 +369,4 @@ TOOL_SCHEMAS: dict[str, dict] = {
             },
         },
     },
-    "lore_knowledge": {
-        "description": (
-            "Search the wiki-ingested cognition base for relevant knowledge. "
-            "Returns ranked results with article and section attribution. "
-            "Only searches memories ingested from wiki articles (source='wiki'). "
-            "Use this to query best-practices, patterns, and procedures from the lore wiki."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Natural language query to search wiki knowledge.",
-                },
-                "top_k": {
-                    "type": "integer",
-                    "description": "Maximum number of results to return. Default: 5.",
-                },
-            },
-            "required": ["query"],
-        },
-    },
 }
