@@ -95,7 +95,7 @@ _ERROR_TYPE_TO_ECOSYSTEM: dict[str, str] = {
 _ECOSYSTEM_CUES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\b(pytest|python|\.py\b|ModuleNotFoundError|ImportError|Traceback)"), "python"),
     (re.compile(r"\b(npm|yarn|pnpm|node|\.js\b|\.ts\b|\.tsx\b|package\.json)"), "node"),
-    (re.compile(r"\b(cargo|rustc|\.rs\b|borrow checker)"), "rust"),
+    (re.compile(r"\b(cargo|rustc|\.rs\b|borrow checker)|error\[E\d{4}\]"), "rust"),
     (re.compile(r"\b(go build|go test|\.go\b|\bgo\s)"), "go"),
     # shell comes before docker so that `bash: docker: command not found`
     # routes to shell (the surrounding context) rather than docker (a word

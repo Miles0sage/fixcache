@@ -5,12 +5,14 @@ the same SQLAlchemy DetachedInstanceError, the same Pydantic v2 migration error 
 over and over, session after session. They have no long-term memory of fixes.
 
 fixcache fingerprints every stderr failure, stores the proven recipe, and surfaces it
-the next time any agent on any repo hits the same wall. 100% cross-class purity on
-123 real GitHub errors means fixes never misfire across error classes.
+the next time any agent on any repo hits the same wall. It's ecosystem-safe: Python
+errors never return Rust recipes, Node errors never return Python recipes. 100% cross-class
+purity on 123 real GitHub errors means fixes never misfire.
 
 **How it works:**
 - `fixcache watch --cmd "pytest tests/"` — wraps any command, intercepts failures
 - Error is fingerprinted (normalized, privacy-safe hash — paths/secrets redacted)
+- Ecosystem gating: matches are scoped to the originating language/runtime (v0.4.7)
 - Matching fix recipe surfaces instantly with confidence score
 - `fixcache darwin report <id> success` — Bayesian update, confidence compounds
 - Works across repos: ModuleNotFoundError in project A = same fingerprint as project B
@@ -36,7 +38,8 @@ No API keys. No telemetry. Your fix corpus lives at ~/.lore-memory/default.db.
 - Not Sentry (error tracker for humans)
 
 It's the third type of agent memory nobody built yet: procedural — reusable fixes
-for failures that broke you before.
+for failures that broke you before. And unlike naive "store everything" approaches,
+it gates matches by ecosystem so a Rust fix never poisons a Python project.
 
 GitHub: https://github.com/Miles0sage/fixcache
 PyPI: pip install fixcache

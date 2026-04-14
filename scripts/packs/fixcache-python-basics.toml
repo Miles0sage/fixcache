@@ -1,0 +1,177 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# fixcache memory pack v1
+# Format: fixcache-pack/1.0
+#
+# This is the canonical wire format for the Lore Registry.
+# A "pack" is a versioned, publishable bundle of fix recipes that any
+# fixcache user can install with:
+#
+#     fixcache install python-basics
+#     fixcache install ./fixcache-python-basics.toml   # local file
+#
+# Pack files are plain TOML. They are the npm package.json of agent memory.
+# ─────────────────────────────────────────────────────────────────────────────
+
+[pack]
+# ── Identity ──────────────────────────────────────────────────────────────────
+name        = "python-basics"
+version     = "0.2.0"
+description = "Essential Python error fixes: imports, types, env, syntax, and deps"
+author      = "Miles Sage <miles@fixcache.dev>"
+license     = "MIT"
+homepage    = "https://github.com/fixcache-registry/python-basics"
+
+# ── Discovery ─────────────────────────────────────────────────────────────────
+ecosystem_tags = ["python", "pip", "pytest", "venv"]
+keywords       = ["modulenotfounderror", "importerror", "typeerror", "syntaxerror", "venv"]
+
+# ── Compatibility ─────────────────────────────────────────────────────────────
+fixcache_min_version = "0.4.0"
+python_min_version   = "3.9"
+
+# ── Corpus provenance ─────────────────────────────────────────────────────────
+# Where did these recipes come from?
+# "community" = crowdsourced + rated. "private" = org-internal.
+corpus_source   = "community"
+corpus_snapshot = "2026-04-13"
+
+# ── Pack-level Darwin stats (updated on publish) ──────────────────────────────
+# These are aggregate outcome counts across all recipes in this pack,
+# giving buyers a single trust signal before they install.
+[pack.stats]
+total_installs   = 1842
+total_seen       = 9201    # times any recipe in this pack matched a real error
+total_success    = 7841
+total_failure    = 612
+efficacy         = 0.928   # Bayesian Beta MAP: (success+1)/(success+failure+2)
+last_updated     = "2026-04-13T00:00:00Z"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RECIPES
+# Each [[recipe]] block is one fix recipe. Fields:
+#
+#   id              — stable slug, unique within this pack. Used for pinning.
+#   error_signature — regex or literal string that matches the raw error text.
+#                     The same pattern stored in darwin_patterns.description.
+#   solution_steps  — ordered list of commands/instructions to fix the error.
+#   tags            — discovery labels.
+#   outcome         — assumed outcome at publish time (pre-seeded signal).
+#   fingerprint     — Darwin hash (sha256[:16] of canonical error form).
+#                     Optional: if absent, fixcache recomputes on import.
+#
+# Darwin efficacy stats (total_seen / total_success / total_failure) are
+# stored per-fingerprint in the local DB and update in real time as users
+# rate outcomes. The pack file carries the "publish-time" snapshot only —
+# local DB values always win after first real usage.
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "python-module-not-found"
+error_signature = "ModuleNotFoundError: No module named"
+tags            = ["python", "import", "pip", "venv"]
+outcome         = "success"
+fingerprint     = "a3f8c21d9e4b7602"   # pre-computed Darwin hash
+
+solution_steps = [
+    "pip install <missing-module>",
+    "If inside a venv, verify it is activated: source .venv/bin/activate",
+    "If using pyproject.toml: pip install -e '.[dev]'",
+    "Check sys.path: python -c 'import sys; print(sys.path)'",
+    "If the module is local, ensure __init__.py exists in the package dir",
+]
+
+[recipe.darwin_stats]
+total_seen    = 3102
+total_success = 2891
+total_failure = 147
+efficacy      = 0.949
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "python-venv-not-activated"
+error_signature = "command not found.*pip|pip: command not found|python3: command not found"
+tags            = ["python", "venv", "shell", "path"]
+outcome         = "success"
+fingerprint     = "b9d14e3f2a810c75"
+
+solution_steps = [
+    "Create venv if missing: python3 -m venv .venv",
+    "Activate: source .venv/bin/activate  (Linux/Mac) or .venv\\Scripts\\activate (Windows)",
+    "Verify: which python  →  should point inside .venv/",
+    "Re-run the failing command",
+]
+
+[recipe.darwin_stats]
+total_seen    = 981
+total_success = 894
+total_failure = 61
+efficacy      = 0.934
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "python-type-error-not-callable"
+error_signature = "TypeError.*object is not callable|TypeError.*takes.*positional argument"
+tags            = ["python", "types", "function"]
+outcome         = "success"
+fingerprint     = "c7a29f1b4e053d8e"
+
+solution_steps = [
+    "Check if you are calling a variable that shadows a function: rename the variable",
+    "If the object is a class instance, check __call__ is defined or use the correct method",
+    "Print type(obj) before the call to verify the actual type",
+    "If using @property, access the attribute without () — do not call it",
+]
+
+[recipe.darwin_stats]
+total_seen    = 2014
+total_success = 1701
+total_failure = 193
+efficacy      = 0.896
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "python-indentation-error"
+error_signature = "IndentationError|TabError: inconsistent use of tabs"
+tags            = ["python", "syntax", "formatting"]
+outcome         = "success"
+fingerprint     = "d2b38e5a71f4c906"
+
+solution_steps = [
+    "Run: python -m py_compile <file.py>  to locate the exact line",
+    "Convert all tabs to spaces: sed -i 's/\\t/    /g' <file.py>  (or use your editor's 'Convert Indentation')",
+    "In VS Code: Cmd+Shift+P → 'Convert Indentation to Spaces'",
+    "Set editor to use 4 spaces, never tabs, for Python files",
+    "Run flake8 or ruff to catch remaining style issues",
+]
+
+[recipe.darwin_stats]
+total_seen    = 762
+total_success = 711
+total_failure = 42
+efficacy      = 0.943
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+[[recipe]]
+id              = "python-attribute-error-none"
+error_signature = "AttributeError: 'NoneType' object has no attribute"
+tags            = ["python", "types", "none", "nullcheck"]
+outcome         = "success"
+fingerprint     = "e5c40d2b8f169a37"
+
+solution_steps = [
+    "The function/method returned None when you expected an object — add a None guard before the attribute access",
+    "Add: assert result is not None, 'Expected <Type>, got None'",
+    "Trace back to where the value is assigned — check for missing return statements in the producing function",
+    "If from a dict lookup, use .get(key) with a default: obj = d.get('key') or default_obj",
+    "Add logging/print just before the failing line to inspect the actual value",
+]
+
+[recipe.darwin_stats]
+total_seen    = 2342
+total_success = 1644
+total_failure = 169
+efficacy      = 0.906

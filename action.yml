@@ -1,0 +1,27 @@
+name: 'fixcache — AI Agent Error Memory'
+description: 'Intercepts CI failures and surfaces fix recipes from fixcache procedural memory.'
+author: 'Miles Sage'
+
+inputs:
+  min-confidence:
+    description: 'Minimum confidence threshold for surfacing a recipe (0.0–1.0)'
+    required: false
+    default: '0.5'
+  fail-on-no-match:
+    description: 'Fail the step if no recipe matches the error'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install fixcache
+      shell: bash
+      run: pip install fixcache --quiet
+
+    - name: Classify error and surface recipes
+      shell: bash
+      env:
+        FIXCACHE_MIN_CONFIDENCE: ${{ inputs.min-confidence }}
+        FIXCACHE_FAIL_ON_NO_MATCH: ${{ inputs.fail-on-no-match }}
+      run: python ${{ github.action_path }}/scripts/ci_classify.py

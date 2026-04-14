@@ -362,6 +362,41 @@ class TestLoreMatchProcedure:
         assert result.get("recipe_ecosystem") in ("python", "unknown", None)
 
 
+    def test_duplicate_fix_returns_error_signature(self, isolated_store):
+        """Dedup return path must include error_signature (CLI KeyError regression)."""
+        sig = "ModuleNotFoundError: No module named 'deduptest'"
+        steps = ["pip install deduptest"]
+        mcp_server.handle_lore_fix(error_signature=sig, solution_steps=steps)
+        result2 = mcp_server.handle_lore_fix(error_signature=sig, solution_steps=steps)
+        assert result2["success"] is True
+        assert result2["deduplicated"] is True
+        assert "error_signature" in result2, "CLI would crash: error_signature missing from dedup return"
+
+    def test_duplicate_fix_increments_seen_count(self, isolated_store):
+        """Repeated identical seeds must increment seen_count for Darwin convergence."""
+        sig = "AttributeError: 'NoneType' object has no attribute 'value'"
+        steps = ["Check for None before accessing .value"]
+        mcp_server.handle_lore_fix(error_signature=sig, solution_steps=steps)
+        mcp_server.handle_lore_fix(error_signature=sig, solution_steps=steps)
+        mcp_server.handle_lore_fix(error_signature=sig, solution_steps=steps)
+        from lore_memory.mcp import server as _srv
+        from lore_memory.fingerprint import compute_fingerprint
+        store = _srv._get_store()
+        fp = compute_fingerprint(sig)
+        row = store.conn.execute(
+            "SELECT total_seen FROM fingerprints WHERE hash = ?", (fp.hash,)
+        ).fetchone()
+        # total_seen must be > 1 after 3 seeds — Darwin convergence requires it
+        assert row is not None, "fingerprint not stored at all"
+        assert row[0] >= 2, f"total_seen={row[0]}, expected >=2 — Darwin has no signal to build on"
+
+    def test_rust_error_code_classified_as_rust(self):
+        """error[E0502] syntax must be classified as rust ecosystem."""
+        from lore_memory.fingerprint import compute_fingerprint
+        fp = compute_fingerprint("error[E0502]: cannot borrow `x` as mutable")
+        assert fp.ecosystem == "rust", f"Expected rust, got {fp.ecosystem}"
+
+
 # ── lore_teach ────────────────────────────────────────────────────────────────
 
 class TestLoreTeach:

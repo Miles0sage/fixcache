@@ -273,12 +273,15 @@ def handle_lore_fix(
     ).fetchone()
     if existing:
         existing_meta = json.loads(existing[1]) if existing[1] else {}
+        # Still upsert so seen_count increments — Darwin needs repeat signals
+        upsert_fingerprint(store, error_signature)
         return {
             "success": True,
             "recipe_id": existing_meta.get("recipe_id", existing[0]),
             "pattern_id": existing[0],
             "fingerprint": fp.hash,
             "fingerprint_ecosystem": fp.ecosystem,
+            "error_signature": error_signature,
             "deduplicated": True,
         }
 
