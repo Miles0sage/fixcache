@@ -322,6 +322,45 @@ class TestLoreMatchProcedure:
         freq_after = row_after[0] if row_after else 0
         assert freq_after > freq_before
 
+    def test_ecosystem_gate_blocks_cross_language(self, isolated_store):
+        """A Rust recipe must NEVER be returned for a Python error."""
+        # Store a Rust recipe by injecting ecosystem metadata directly
+        import json, uuid, time as _time
+        rust_pat_id = str(uuid.uuid4())
+        rust_meta = json.dumps({
+            "fingerprint_ecosystem": "rust",
+            "fingerprint_error_type": "CompilerError",
+            "fingerprint_hash": "deadbeef00000001",
+        })
+        isolated_store.conn.execute(
+            """INSERT INTO darwin_patterns
+               (id, pattern_type, description, rule, confidence, frequency, metadata)
+               VALUES (?, 'error_recipe', 'Fix for: unused import warning', ?, 0.9, 5, ?)""",
+            (rust_pat_id, json.dumps(["Remove unused import with #[allow(unused_imports)]"]), rust_meta),
+        )
+        isolated_store.conn.commit()
+
+        # Python SyntaxError — ecosystem = python, must NOT return the Rust recipe
+        result = mcp_server.handle_lore_match_procedure(
+            "SyntaxError: invalid syntax\n  File 'foo.py', line 3"
+        )
+        if result.get("found"):
+            assert result.get("recipe_ecosystem") != "rust", (
+                "Ecosystem gate failed: returned Rust recipe for Python SyntaxError"
+            )
+
+    def test_same_ecosystem_recipe_returned(self, isolated_store):
+        """A Python recipe IS returned for a Python error."""
+        mcp_server.handle_lore_fix(
+            error_signature="ModuleNotFoundError: No module named '<mod>'",
+            solution_steps=["pip install <mod>", "check active virtualenv"],
+        )
+        result = mcp_server.handle_lore_match_procedure(
+            "ModuleNotFoundError: No module named 'requests'"
+        )
+        assert result["found"] is True
+        assert result.get("recipe_ecosystem") in ("python", "unknown", None)
+
 
 # ── lore_teach ────────────────────────────────────────────────────────────────
 

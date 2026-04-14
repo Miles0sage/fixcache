@@ -373,10 +373,15 @@ def handle_lore_match_procedure(current_error: str) -> dict[str, Any]:
     """Find the best fix recipe via regex match on darwin_patterns, FTS5 fallback."""
     store = _get_store()
 
-    # 1. Try regex match against darwin_patterns
+    # Detect ecosystem of incoming error — used for hard gating below
+    incoming_fp = compute_fingerprint(current_error)
+    incoming_ecosystem = incoming_fp.ecosystem  # e.g. "python", "rust", "node", "unknown"
+
+    # 1. Try regex match against darwin_patterns — ecosystem-gated
     rows = store.conn.execute(
         """
-        SELECT id, description, rule, frequency, confidence, last_triggered
+        SELECT id, description, rule, frequency, confidence, last_triggered,
+               json_extract(metadata, '$.fingerprint_ecosystem') AS recipe_ecosystem
         FROM darwin_patterns
         WHERE pattern_type = 'error_recipe'
         ORDER BY confidence DESC, frequency DESC
@@ -387,7 +392,18 @@ def handle_lore_match_procedure(current_error: str) -> dict[str, Any]:
     best_confidence = -1.0
 
     for row in rows:
-        pat_id, description, rule_json, frequency, confidence, last_triggered = row
+        pat_id, description, rule_json, frequency, confidence, last_triggered, recipe_ecosystem = row
+
+        # Ecosystem gate: skip recipes from a different known ecosystem.
+        # "unknown" on either side is treated as compatible (no data = no block).
+        recipe_eco = recipe_ecosystem or "unknown"
+        if (
+            incoming_ecosystem != "unknown"
+            and recipe_eco != "unknown"
+            and incoming_ecosystem != recipe_eco
+        ):
+            continue  # hard block — never return a Rust recipe for a Python error
+
         # Extract the error signature from description
         sig = description.replace("Fix for: ", "", 1)
         try:
@@ -405,6 +421,7 @@ def handle_lore_match_procedure(current_error: str) -> dict[str, Any]:
                         "confidence": confidence,
                         "frequency": frequency,
                         "last_triggered": last_triggered,
+                        "recipe_ecosystem": recipe_eco,
                     }
                     best_confidence = confidence
         except re.error:
@@ -423,6 +440,7 @@ def handle_lore_match_procedure(current_error: str) -> dict[str, Any]:
                         "confidence": confidence,
                         "frequency": frequency,
                         "last_triggered": last_triggered,
+                        "recipe_ecosystem": recipe_eco,
                     }
                     best_confidence = confidence
 
